@@ -1,0 +1,1499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Slip-Ring Induction Motor — Test Bench Simulator</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Barlow:wght@400;500;600&display=swap');
+
+  :root{
+    --bg:#eef1f5;
+    --bg-deep:#e2e7ee;
+    --grid:rgba(30,55,90,0.07);
+    --panel:#ffffff;
+    --panel2:#f7f9fb;
+    --border:#d9dfe7;
+    --border-lit:#b7c3d1;
+    --text:#1b2734;
+    --text-dim:#55677c;
+    --text-faint:#8697a9;
+    --amber:#b9770a;
+    --amber-glow:#c9820a;
+    --red:#c1442d;
+    --red-glow:#c1442d;
+    --green:#4c7a22;
+    --green-glow:#3f7a2e;
+    --teal:#12897c;
+    --copper:#a8642f;
+    --blue-lit:#2e6bb0;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;overflow:hidden;}
+
+  .grid-bg{
+    position:fixed;inset:0;z-index:0;
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size:38px 38px;
+    pointer-events:none;
+  }
+  .grid-bg::after{
+    content:"";position:absolute;inset:0;
+    background:radial-gradient(ellipse at 50% 0%, rgba(46,107,176,0.06), transparent 60%);
+  }
+
+  /* ===== Top bar ===== */
+  #topbar{
+    position:fixed;top:0;left:0;right:0;height:64px;z-index:50;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:0 22px;
+    background:linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,0.92));
+    border-bottom:1px solid var(--border);
+    backdrop-filter:blur(6px);
+  }
+  .brand{display:flex;align-items:center;gap:12px;}
+  .brand-mark{
+    width:34px;height:34px;border:2px solid var(--amber);border-radius:3px;
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Oswald';font-weight:700;font-size:15px;color:var(--amber);
+    transform:rotate(0deg);
+    box-shadow:0 0 14px rgba(224,167,46,0.25) inset;
+  }
+  .brand-text .t1{font-family:'Oswald';font-weight:600;font-size:16px;letter-spacing:0.5px;line-height:1;}
+  .brand-text .t2{font-family:'JetBrains Mono';font-size:10px;color:var(--text-faint);letter-spacing:1.5px;margin-top:3px;}
+
+  .tabs{display:flex;gap:2px;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:3px;}
+  .tab-btn{
+    font-family:'Oswald';font-weight:500;font-size:13px;letter-spacing:0.6px;
+    color:var(--text-dim);background:transparent;border:none;padding:9px 18px;border-radius:6px;
+    cursor:pointer;transition:all .2s ease;text-transform:uppercase;
+  }
+  .tab-btn.active{background:linear-gradient(180deg,#fff,#eef2f7);color:var(--amber-glow);box-shadow:0 0 0 1px var(--border-lit) inset, 0 1px 3px rgba(20,40,70,0.12);}
+  .tab-btn:hover:not(.active){color:var(--text);}
+
+  .status-chip{
+    font-family:'JetBrains Mono';font-size:11px;padding:7px 12px;border-radius:6px;
+    border:1px solid var(--border);color:var(--text-faint);display:flex;align-items:center;gap:7px;
+  }
+  .status-dot{width:7px;height:7px;border-radius:50%;background:#b7c3d1;transition:all .3s;}
+  .status-chip.on .status-dot{background:var(--green-glow);box-shadow:0 0 8px var(--green-glow);}
+  .status-chip.on{color:var(--green-glow);border-color:rgba(168,224,95,0.35);}
+
+  /* ===== layout ===== */
+  #app{position:fixed;top:64px;left:0;right:0;bottom:0;z-index:1;display:flex;}
+  #viewport{flex:1;position:relative;}
+  canvas{display:block;}
+
+  .view-label{
+    position:absolute;top:16px;left:20px;
+    font-family:'JetBrains Mono';font-size:11px;color:var(--text-faint);
+    letter-spacing:2px;text-transform:uppercase;
+  }
+  .view-title{
+    position:absolute;top:34px;left:20px;
+    font-family:'Oswald';font-weight:600;font-size:22px;color:var(--text);
+  }
+
+  .hint{
+    position:absolute;bottom:16px;left:20px;
+    font-family:'JetBrains Mono';font-size:10.5px;color:var(--text-faint);
+    background:rgba(15,29,46,0.7);padding:6px 10px;border-radius:5px;border:1px solid var(--border);
+  }
+
+  /* floating part labels */
+  .part-label{
+    position:absolute;transform:translate(-50%,-100%);
+    font-family:'JetBrains Mono';font-size:10.5px;color:var(--amber-glow);
+    background:rgba(9,16,26,0.82);border:1px solid rgba(224,167,46,0.4);
+    padding:3px 7px;border-radius:4px;white-space:nowrap;pointer-events:none;
+    transition:opacity .15s;
+  }
+  .part-label::after{
+    content:"";position:absolute;left:50%;top:100%;transform:translateX(-50%);
+    border:4px solid transparent;border-top-color:rgba(224,167,46,0.4);
+  }
+
+  /* ===== side panel ===== */
+  #sidepanel{
+    width:346px;min-width:346px;
+    background:linear-gradient(180deg, var(--panel), var(--bg-deep));
+    border-left:1px solid var(--border);
+    overflow-y:auto;padding:18px 16px 40px;
+  }
+  #sidepanel::-webkit-scrollbar{width:7px;}
+  #sidepanel::-webkit-scrollbar-thumb{background:var(--border-lit);border-radius:6px;}
+
+  .panel-card{
+    background:var(--panel2);border:1px solid var(--border);border-radius:10px;
+    padding:14px 15px;margin-bottom:14px;
+  }
+  .panel-card h3{
+    margin:0 0 12px;font-family:'Oswald';font-weight:500;font-size:12.5px;letter-spacing:1.6px;
+    color:var(--text-faint);text-transform:uppercase;display:flex;align-items:center;gap:8px;
+  }
+  .panel-card h3::before{content:"";width:3px;height:13px;background:var(--amber);border-radius:2px;display:inline-block;}
+
+  .method-select{display:flex;flex-direction:column;gap:6px;}
+  .method-opt{
+    display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:7px;border:1px solid var(--border);
+    cursor:pointer;transition:all .15s;background:rgba(255,255,255,0.015);
+  }
+  .method-opt:hover{border-color:var(--border-lit);}
+  .method-opt.active{border-color:var(--teal);background:rgba(63,184,172,0.09);}
+  .method-opt .dot{width:9px;height:9px;border-radius:50%;border:2px solid var(--text-faint);flex-shrink:0;}
+  .method-opt.active .dot{border-color:var(--teal);background:var(--teal);box-shadow:0 0 6px var(--teal);}
+  .method-opt .mtxt .m1{font-family:'Oswald';font-size:13px;font-weight:500;}
+  .method-opt .mtxt .m2{font-family:'JetBrains Mono';font-size:9.5px;color:var(--text-faint);margin-top:1px;}
+
+  .slider-row{margin-bottom:14px;}
+  .slider-row:last-child{margin-bottom:0;}
+  .slider-label{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px;}
+  .slider-label .sl-name{font-family:'Barlow';font-size:12.5px;color:var(--text-dim);}
+  .slider-label .sl-val{font-family:'JetBrains Mono';font-size:13px;color:var(--amber-glow);font-weight:700;}
+  input[type=range]{
+    -webkit-appearance:none;width:100%;height:5px;border-radius:3px;
+    background:linear-gradient(90deg, var(--teal) 0%, var(--teal) var(--fill,50%), #dbe2ea var(--fill,50%));
+    outline:none;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:16px;height:16px;border-radius:50%;
+    background:#eef4fb;border:3px solid var(--teal);cursor:pointer;box-shadow:0 0 8px rgba(63,184,172,0.6);
+  }
+  input[type=range]:disabled{opacity:0.35;}
+  input[type=range]:disabled::-webkit-slider-thumb{cursor:not-allowed;}
+
+  .pole-select{display:flex;gap:6px;}
+  .pole-btn{
+    flex:1;padding:9px 0;text-align:center;border:1px solid var(--border);border-radius:7px;
+    font-family:'JetBrains Mono';font-size:12px;color:var(--text-dim);cursor:pointer;background:rgba(255,255,255,0.02);
+  }
+  .pole-btn.active{border-color:var(--amber);color:var(--amber-glow);background:rgba(224,167,46,0.1);}
+
+  .btn-row{display:flex;gap:8px;margin-top:4px;}
+  .btn{
+    flex:1;padding:12px 0;border-radius:8px;border:1px solid var(--border);cursor:pointer;
+    font-family:'Oswald';font-weight:600;font-size:13.5px;letter-spacing:1px;text-transform:uppercase;
+    transition:all .15s;background:var(--panel);color:var(--text);
+  }
+  .btn-start{border-color:rgba(168,224,95,0.4);color:var(--green-glow);}
+  .btn-start:hover{background:rgba(168,224,95,0.1);}
+  .btn-start.running{background:linear-gradient(180deg,#3a5f22,#274216);color:#e9ffcf;border-color:var(--green-glow);}
+  .btn-stop{border-color:rgba(255,106,74,0.4);color:var(--red-glow);}
+  .btn-stop:hover{background:rgba(255,106,74,0.1);}
+
+  /* gauges */
+  .gauge-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+  .gauge{text-align:center;}
+  .gauge svg{width:100%;height:auto;}
+  .gauge-name{font-family:'JetBrains Mono';font-size:9.5px;color:var(--text-faint);letter-spacing:1px;margin-top:2px;text-transform:uppercase;}
+  .gauge-read{font-family:'JetBrains Mono';font-size:15px;color:var(--text);font-weight:700;margin-top:1px;}
+  .gauge-unit{font-size:10px;color:var(--text-faint);}
+
+  .readout-strip{display:flex;justify-content:space-between;padding:9px 4px;border-bottom:1px dashed var(--border);}
+  .readout-strip:last-child{border-bottom:none;}
+  .readout-strip .rn{font-size:12px;color:var(--text-dim);}
+  .readout-strip .rv{font-family:'JetBrains Mono';font-size:13px;color:var(--amber-glow);font-weight:700;}
+
+  .mini-note{font-family:'JetBrains Mono';font-size:10px;color:var(--text-faint);line-height:1.6;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);}
+
+  /* ===== anatomy view specific ===== */
+  #anatomy-panel .infoblock{margin-bottom:16px;}
+  #anatomy-panel .infoblock h4{
+    font-family:'Oswald';font-size:14px;color:var(--amber-glow);margin:0 0 5px;letter-spacing:0.4px;
+    display:flex;align-items:center;gap:8px;
+  }
+  #anatomy-panel .infoblock h4 .ic{width:8px;height:8px;border-radius:2px;background:var(--teal);display:inline-block;}
+  #anatomy-panel .infoblock p{font-size:12.5px;line-height:1.65;color:var(--text-dim);margin:0;}
+  #anatomy-panel .infoblock .formula{
+    font-family:'JetBrains Mono';font-size:12px;color:var(--amber-glow);background:rgba(224,167,46,0.08);
+    border:1px solid rgba(224,167,46,0.25);padding:6px 9px;border-radius:6px;margin-top:6px;display:inline-block;
+  }
+
+  .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px dashed var(--border);}
+  .toggle-row:last-child{border:none;}
+  .toggle-row .tn{font-size:12.5px;color:var(--text-dim);}
+  .switch{width:38px;height:20px;border-radius:12px;background:#dbe2ea;border:1px solid var(--border);position:relative;cursor:pointer;flex-shrink:0;}
+  .switch .knob{position:absolute;top:1px;left:1px;width:16px;height:16px;border-radius:50%;background:var(--text-faint);transition:all .18s;}
+  .switch.on{background:rgba(63,184,172,0.25);border-color:var(--teal);}
+  .switch.on .knob{left:19px;background:var(--teal);box-shadow:0 0 6px var(--teal);}
+
+  .part-nav{display:flex;flex-wrap:wrap;gap:6px;}
+  .part-chip{
+    padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-family:'JetBrains Mono';
+    font-size:10.5px;color:var(--text-dim);cursor:pointer;background:rgba(255,255,255,0.02);
+  }
+  .part-chip.active{border-color:var(--teal);color:var(--teal);background:rgba(63,184,172,0.1);}
+
+  #loading{
+    position:fixed;inset:0;z-index:200;background:var(--bg-deep);display:flex;align-items:center;justify-content:center;
+    flex-direction:column;gap:14px;transition:opacity .4s;
+  }
+  #loading .spin{width:44px;height:44px;border:3px solid #e5e9ee;border-top-color:var(--amber);border-radius:50%;animation:spin 0.9s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  #loading .lt{font-family:'JetBrains Mono';font-size:12px;color:var(--text-faint);letter-spacing:1px;}
+
+  @media (max-width:900px){
+    #sidepanel{position:fixed;right:0;top:64px;bottom:0;transform:translateX(100%);transition:transform .25s;box-shadow:-10px 0 30px rgba(0,0,0,0.5);}
+    #sidepanel.open{transform:translateX(0);}
+    #panel-toggle{display:flex !important;}
+  }
+  #panel-toggle{
+    display:none;position:absolute;top:16px;right:16px;z-index:40;width:40px;height:40px;border-radius:8px;
+    background:var(--panel2);border:1px solid var(--border);color:var(--amber-glow);align-items:center;justify-content:center;
+    font-size:18px;cursor:pointer;
+  }
+</style>
+</head>
+<body>
+
+<div id="loading"><div class="spin"></div><div class="lt">INITIALIZING 3D TEST BENCH…</div></div>
+
+<div class="grid-bg"></div>
+
+<div id="topbar">
+  <div class="brand">
+    <div class="brand-mark">3φ</div>
+    <div class="brand-text">
+      <div class="t1">SLIP-RING INDUCTION MOTOR</div>
+      <div class="t2">SPEED CONTROL &amp; CONSTRUCTION SIMULATOR</div>
+    </div>
+  </div>
+  <div class="tabs">
+    <button class="tab-btn active" data-view="bench">Test Bench</button>
+    <button class="tab-btn" data-view="anatomy">Motor Anatomy</button>
+  </div>
+  <div class="status-chip" id="statusChip"><div class="status-dot"></div><span id="statusText">STOPPED</span></div>
+</div>
+
+<div id="app">
+  <div id="viewport">
+    <button id="panel-toggle">☰</button>
+    <div class="view-label" id="viewLabel">01 — LIVE SIMULATION</div>
+    <div class="view-title" id="viewTitle">Electrical Machines Lab · Bay 24</div>
+    <div id="labels-layer"></div>
+    <div class="hint" id="viewHint">drag to orbit · scroll to zoom · right-drag to pan</div>
+  </div>
+
+  <div id="sidepanel">
+    <!-- ================= BENCH PANEL ================= -->
+    <div id="bench-panel">
+      <div class="panel-card">
+        <h3>Nameplate</h3>
+        <div class="readout-strip"><span class="rn">Rated Power</span><span class="rv">5.0 HP</span></div>
+        <div class="readout-strip"><span class="rn">Rated Voltage</span><span class="rv">415 V</span></div>
+        <div class="readout-strip"><span class="rn">Rated Current</span><span class="rv">7.2 A</span></div>
+        <div class="readout-strip"><span class="rn">Rated Speed</span><span class="rv">1400 RPM</span></div>
+        <div class="readout-strip"><span class="rn">Rotor Voltage</span><span class="rv">330 V</span></div>
+        <div class="readout-strip"><span class="rn">Rotor Current</span><span class="rv">6.6 A</span></div>
+        <div class="readout-strip"><span class="rn">Frequency</span><span class="rv">50 Hz</span></div>
+        <div class="readout-strip"><span class="rn">Make</span><span class="rv">PSG</span></div>
+      </div>
+
+      <div class="panel-card">
+        <h3>Speed Control Method</h3>
+        <div class="method-select" id="methodSelect">
+          <div class="method-opt active" data-method="rheostat">
+            <div class="dot"></div>
+            <div class="mtxt"><div class="m1">Rotor Rheostat Control</div><div class="m2">external resistance in rotor circuit</div></div>
+          </div>
+          <div class="method-opt" data-method="pole">
+            <div class="dot"></div>
+            <div class="mtxt"><div class="m1">Pole Changing</div><div class="m2">2P / 4P / 6P stator rewinding</div></div>
+          </div>
+          <div class="method-opt" data-method="voltage">
+            <div class="dot"></div>
+            <div class="mtxt"><div class="m1">Stator Voltage Control</div><div class="m2">auto-transformer, V/f varied</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <h3>Controls</h3>
+
+        <div id="voltageSliderWrap" class="slider-row">
+          <div class="slider-label"><span class="sl-name">Stator Voltage (auto-tf)</span><span class="sl-val" id="vVal">415 V</span></div>
+          <input type="range" id="vSlider" min="60" max="415" value="415" step="1">
+        </div>
+
+        <div id="rheoSliderWrap" class="slider-row">
+          <div class="slider-label"><span class="sl-name">Rotor Rheostat</span><span class="sl-val" id="rVal">0 %</span></div>
+          <input type="range" id="rSlider" min="0" max="100" value="0" step="1">
+        </div>
+
+        <div id="poleSelectWrap" class="slider-row" style="display:none;">
+          <div class="slider-label"><span class="sl-name">Pole Configuration</span><span class="sl-val" id="pVal">4 P</span></div>
+          <div class="pole-select">
+            <div class="pole-btn" data-poles="2">2 POLE</div>
+            <div class="pole-btn active" data-poles="4">4 POLE</div>
+            <div class="pole-btn" data-poles="6">6 POLE</div>
+          </div>
+        </div>
+
+        <div class="slider-row">
+          <div class="slider-label"><span class="sl-name">Brake Load (rope-pulley)</span><span class="sl-val" id="lVal">0 %</span></div>
+          <input type="range" id="lSlider" min="0" max="100" value="0" step="1">
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-start" id="startBtn">▶ Start Motor</button>
+          <button class="btn btn-stop" id="stopBtn">■ Stop</button>
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <h3>Live Instrument Panel</h3>
+        <div class="gauge-grid">
+          <div class="gauge">
+            <svg viewBox="0 0 120 78" id="gaugeSpeed"></svg>
+            <div class="gauge-read"><span id="rpmRead">0</span><span class="gauge-unit"> RPM</span></div>
+            <div class="gauge-name">Tachometer</div>
+          </div>
+          <div class="gauge">
+            <svg viewBox="0 0 120 78" id="gaugeVolt"></svg>
+            <div class="gauge-read"><span id="voltRead">0</span><span class="gauge-unit"> V</span></div>
+            <div class="gauge-name">Voltmeter M1</div>
+          </div>
+          <div class="gauge">
+            <svg viewBox="0 0 120 78" id="gaugeStatorI"></svg>
+            <div class="gauge-read"><span id="statorIRead">0.0</span><span class="gauge-unit"> A</span></div>
+            <div class="gauge-name">Stator Ammeter</div>
+          </div>
+          <div class="gauge">
+            <svg viewBox="0 0 120 78" id="gaugeRotorI"></svg>
+            <div class="gauge-read"><span id="rotorIRead">0.0</span><span class="gauge-unit"> A</span></div>
+            <div class="gauge-name">Rotor Ammeter M2</div>
+          </div>
+          <div class="gauge">
+            <svg viewBox="0 0 120 78" id="gaugeLoad"></svg>
+            <div class="gauge-read"><span id="loadRead">0</span><span class="gauge-unit"> %</span></div>
+            <div class="gauge-name">Brake Load</div>
+          </div>
+        </div>
+        <div class="mini-note" id="calcNote">Ns = 120f/P → synchronous speed for present pole configuration. Slip s = (Ns − N)/Ns.</div>
+      </div>
+
+      <div class="panel-card">
+        <h3>Derived Readings</h3>
+        <div class="readout-strip"><span class="rn">Synchronous Speed Ns</span><span class="rv" id="nsRead">1500 RPM</span></div>
+        <div class="readout-strip"><span class="rn">Slip s</span><span class="rv" id="slipRead">0.00</span></div>
+        <div class="readout-strip"><span class="rn">Rotor Voltage Vr</span><span class="rv" id="vrRead">0 V</span></div>
+        <div class="readout-strip"><span class="rn">Load Torque (rel.)</span><span class="rv" id="torqueRead">0 %</span></div>
+      </div>
+    </div>
+
+    <!-- ================= ANATOMY PANEL ================= -->
+    <div id="anatomy-panel" style="display:none;">
+      <div class="panel-card">
+        <h3>Explode / Assemble</h3>
+        <div class="slider-row">
+          <div class="slider-label"><span class="sl-name">Exploded View</span><span class="sl-val" id="explodeVal">100 %</span></div>
+          <input type="range" id="explodeSlider" min="0" max="100" value="100" step="1">
+        </div>
+        <div class="toggle-row">
+          <span class="tn">Rotate rotor (simulate run)</span>
+          <div class="switch on" id="toggleSpin"><div class="knob"></div></div>
+        </div>
+        <div class="toggle-row">
+          <span class="tn">Show rotating magnetic field</span>
+          <div class="switch on" id="toggleFlux"><div class="knob"></div></div>
+        </div>
+        <div class="toggle-row">
+          <span class="tn">Show induced EMF / rotor current</span>
+          <div class="switch on" id="toggleEmf"><div class="knob"></div></div>
+        </div>
+        <div class="toggle-row">
+          <span class="tn">Show slip-ring &amp; brush contact</span>
+          <div class="switch on" id="toggleBrush"><div class="knob"></div></div>
+        </div>
+      </div>
+
+      <div class="panel-card">
+        <h3>Jump to Part</h3>
+        <div class="part-nav" id="partNav">
+          <div class="part-chip" data-part="stator">Stator Core</div>
+          <div class="part-chip" data-part="rotor">Wound Rotor</div>
+          <div class="part-chip" data-part="slip">Slip Rings</div>
+          <div class="part-chip" data-part="brush">Brush Gear</div>
+          <div class="part-chip" data-part="shield">End Shields</div>
+          <div class="part-chip" data-part="fan">Cooling Fan</div>
+        </div>
+      </div>
+
+      <div class="panel-card" id="infoCard">
+        <h3>How It Works</h3>
+        <div class="infoblock">
+          <h4><span class="ic"></span>Stator</h4>
+          <p>The stationary outer core is built from thin, insulated silicon-steel laminations to curb eddy-current loss. Three sets of copper windings sit in its slots, displaced 120° apart in space, and are fed from the 415 V, 3-phase, 50 Hz supply through R, Y, B terminals.</p>
+        </div>
+        <div class="infoblock">
+          <h4><span class="ic"></span>Rotating Magnetic Field</h4>
+          <p>Three currents that are 120° apart in time, flowing in windings 120° apart in space, sum vectorially to a magnetic field of constant magnitude that sweeps around the bore at synchronous speed.</p>
+          <div class="formula">Ns = 120·f / P</div>
+        </div>
+        <div class="infoblock">
+          <h4><span class="ic"></span>Induced EMF (Faraday's Law)</h4>
+          <p>The rotating flux cuts the closed rotor bars/windings, inducing an EMF exactly as a moving magnet induces EMF in a stationary coil.</p>
+          <div class="formula">e = −N · dΦ/dt</div>
+        </div>
+        <div class="infoblock">
+          <h4><span class="ic"></span>Rotor Current &amp; Torque</h4>
+          <p>The induced EMF drives current through the closed rotor circuit (via slip rings, brushes, and the external rheostat). This current, reacting with the stator flux, produces the torque that turns the shaft — always slightly slower than the field, since relative motion is needed to induce anything at all.</p>
+          <div class="formula">s = (Ns − N) / Ns</div>
+        </div>
+        <div class="infoblock">
+          <h4><span class="ic"></span>Slip Rings &amp; Brushes</h4>
+          <p>Because this is a <em>wound</em> rotor (not squirrel-cage), its three winding ends are brought out to three copper slip rings on the shaft. Stationary carbon brushes ride on these rings, letting an external rheostat be inserted in the rotor circuit — the basis of the rotor-rheostat speed control method used on this bench.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+window.addEventListener('load', () => { try { initApp(); } catch(e){ document.getElementById('loading').innerHTML = '<div style="color:#ff6a4a;font-family:JetBrains Mono;font-size:12px;max-width:400px;text-align:center;">Failed to initialize 3D engine:<br>'+e.message+'</div>'; console.error(e); } });
+
+function initApp(){
+
+/* ======================================================================
+   DATA — transcribed directly from the lab notebook readings
+   ====================================================================== */
+const RHEO_DATA = [
+  {pct:0,    rpm:1304, vr:22.0,  ir:0.70},
+  {pct:14.3, rpm:1267, vr:26.0,  ir:0.70},
+  {pct:28.6, rpm:1203, vr:38.6,  ir:0.75},
+  {pct:42.9, rpm:1157, vr:39.8,  ir:0.75},
+  {pct:57.1, rpm:1089, vr:41.3,  ir:0.73},
+  {pct:71.4, rpm:980,  vr:59.8,  ir:0.70},
+  {pct:85.7, rpm:806,  vr:81.6,  ir:0.65},
+  {pct:100,  rpm:450,  vr:125.7, ir:0.50},
+];
+const POLE_DATA = {2:2994, 4:1496, 6:999};
+const VOLT_DATA = [
+  {v:80,  noload:1437, load25:1437},
+  {v:110, noload:1482, load25:1482},
+  {v:140, noload:1489, load25:1489},
+  {v:170, noload:1491, load25:1491},
+  {v:200, noload:1493, load25:1323},
+  {v:230, noload:1494, load25:1366},
+  {v:260, noload:1495, load25:1389},
+  {v:290, noload:1496, load25:1410},
+  {v:310, noload:1497, load25:1416},
+  {v:340, noload:1499, load25:1435},
+  {v:370, noload:1499, load25:1445},
+  {v:400, noload:1500, load25:1455},
+  {v:415, noload:1500, load25:1457},
+];
+
+function interp(table, key, x, outKey){
+  if(x<=table[0][key]) return table[0][outKey];
+  if(x>=table[table.length-1][key]) return table[table.length-1][outKey];
+  for(let i=0;i<table.length-1;i++){
+    const a=table[i], b=table[i+1];
+    if(x>=a[key] && x<=b[key]){
+      const t=(x-a[key])/(b[key]-a[key]);
+      return a[outKey] + t*(b[outKey]-a[outKey]);
+    }
+  }
+  return table[table.length-1][outKey];
+}
+
+/* ======================================================================
+   STATE
+   ====================================================================== */
+const state = {
+  view:'bench',
+  running:false,
+  method:'rheostat',
+  statorVoltage:415,
+  rotorPct:0,
+  poles:4,
+  loadPct:0,
+  rpm:0, rpmDisplay:0,
+  statorI:0, rotorI:0, vr:0, ns:1500, slip:0,
+  shaftAngle:0,
+};
+
+/* ======================================================================
+   READING COMPUTATION
+   ====================================================================== */
+function computeReadings(){
+  let rpmBase, vr=0, rotorI=0.6, statorI=7.2;
+  const ns2p=3000, ns4p=1500, ns6p=1000;
+
+  if(state.method==='rheostat'){
+    state.ns = ns4p;
+    rpmBase = interp(RHEO_DATA,'pct',state.rotorPct,'rpm');
+    vr = interp(RHEO_DATA,'pct',state.rotorPct,'vr');
+    rotorI = interp(RHEO_DATA,'pct',state.rotorPct,'ir');
+    statorI = 7.2 * (rpmBase/1304);
+  } else if(state.method==='pole'){
+    state.ns = state.poles===2?ns2p: state.poles===6?ns6p: ns4p;
+    rpmBase = POLE_DATA[state.poles] || ns4p;
+    vr = 0; rotorI = 0.6;
+    statorI = 7.2 * (state.poles===2?1.15: state.poles===6?0.65:1.0);
+  } else { // voltage control
+    state.ns = ns4p;
+    const noload = interp(VOLT_DATA,'v',state.statorVoltage,'noload');
+    const load25 = interp(VOLT_DATA,'v',state.statorVoltage,'load25');
+    rpmBase = noload; // load blended below via loadPct against load25 curve
+    const loadedRpm = load25;
+    const blend = Math.min(state.loadPct/25,1);
+    rpmBase = noload + (loadedRpm-noload)*blend*(state.loadPct>0?1:0);
+    vr = 0; rotorI=0.55;
+    statorI = 7.2 * (state.statorVoltage/415);
+  }
+
+  // apply brake load (rope-pulley) degrade — extra drop & current rise beyond method's own load model
+  const extraLoadDrop = (state.method==='voltage') ? Math.max(0,(state.loadPct-25))*0.004 : state.loadPct*0.0035;
+  let rpmFinal = rpmBase * (1 - extraLoadDrop);
+  const iBoost = 1 + state.loadPct*0.006;
+
+  state.rpm = Math.max(0, rpmFinal);
+  state.statorI = statorI*iBoost;
+  state.rotorI = rotorI*iBoost;
+  state.vr = vr;
+  state.slip = (state.ns-state.rpm)/state.ns;
+}
+
+/* ======================================================================
+   THREE.JS CORE
+   ====================================================================== */
+const viewport = document.getElementById('viewport');
+const renderer = new THREE.WebGLRenderer({antialias:true, alpha:false});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(viewport.clientWidth, viewport.clientHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.15;
+viewport.appendChild(renderer.domElement);
+
+const sceneBench = new THREE.Scene();
+sceneBench.fog = new THREE.FogExp2(0xeef1f5, 0.014);
+sceneBench.background = new THREE.Color(0xeef1f5);
+const sceneAnatomy = new THREE.Scene();
+sceneAnatomy.fog = new THREE.FogExp2(0xeef1f5, 0.011);
+sceneAnatomy.background = new THREE.Color(0xeef1f5);
+
+const camera = new THREE.PerspectiveCamera(42, viewport.clientWidth/viewport.clientHeight, 0.1, 500);
+
+/* --- simple orbit-style camera controller (custom, no external deps) --- */
+function makeOrbit(target, radius, minR, maxR){
+  return {theta:0.7, phi:1.15, radius, minR, maxR, target:target.clone()};
+}
+let orbitBench = makeOrbit(new THREE.Vector3(0,3.4,0), 22, 8, 46);
+let orbitAnatomy = makeOrbit(new THREE.Vector3(0,1.2,0), 16, 6, 36);
+function currentOrbit(){ return state.view==='bench'?orbitBench:orbitAnatomy; }
+
+function applyOrbit(o){
+  const p = o.target.clone();
+  p.x += o.radius*Math.sin(o.phi)*Math.sin(o.theta);
+  p.y += o.radius*Math.cos(o.phi);
+  p.z += o.radius*Math.sin(o.phi)*Math.cos(o.theta);
+  camera.position.copy(p);
+  camera.lookAt(o.target);
+}
+applyOrbit(orbitBench);
+
+let dragging=false, dragBtn=0, lastX=0, lastY=0;
+renderer.domElement.addEventListener('pointerdown', e=>{dragging=true; dragBtn=e.button; lastX=e.clientX; lastY=e.clientY; renderer.domElement.setPointerCapture(e.pointerId);});
+renderer.domElement.addEventListener('pointerup', e=>{dragging=false;});
+renderer.domElement.addEventListener('pointerleave', ()=>{dragging=false;});
+renderer.domElement.addEventListener('pointermove', e=>{
+  if(!dragging) return;
+  const o = currentOrbit();
+  const dx=e.clientX-lastX, dy=e.clientY-lastY; lastX=e.clientX; lastY=e.clientY;
+  if(dragBtn===2){
+    o.target.x -= dx*0.02*Math.cos(o.theta); o.target.z += dx*0.02*Math.sin(o.theta);
+    o.target.y += dy*0.02;
+  } else {
+    o.theta -= dx*0.006;
+    o.phi = Math.min(Math.max(o.phi - dy*0.006, 0.25), Math.PI-0.25);
+  }
+  applyOrbit(o);
+});
+renderer.domElement.addEventListener('contextmenu', e=>e.preventDefault());
+renderer.domElement.addEventListener('wheel', e=>{
+  e.preventDefault();
+  const o = currentOrbit();
+  o.radius = Math.min(Math.max(o.radius + e.deltaY*0.016, o.minR), o.maxR);
+  applyOrbit(o);
+},{passive:false});
+
+window.addEventListener('resize', ()=>{
+  camera.aspect = viewport.clientWidth/viewport.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(viewport.clientWidth, viewport.clientHeight);
+});
+
+/* --- shared materials --- */
+const MAT = {
+  motorGreen: new THREE.MeshPhysicalMaterial({color:0x6fa03a, roughness:0.38, metalness:0.35, clearcoat:0.55, clearcoatRoughness:0.28}),
+  steelGrey: new THREE.MeshPhysicalMaterial({color:0x8a97a8, roughness:0.32, metalness:0.75, clearcoat:0.2, clearcoatRoughness:0.4}),
+  darkSteel: new THREE.MeshPhysicalMaterial({color:0x333f4d, roughness:0.4, metalness:0.65, clearcoat:0.3, clearcoatRoughness:0.35}),
+  panelWhite: new THREE.MeshStandardMaterial({color:0xe9edf2, roughness:0.5, metalness:0.1}),
+  panelBoard: new THREE.MeshStandardMaterial({color:0x3a2a2a, roughness:0.6}),
+  copper: new THREE.MeshPhysicalMaterial({color:0xc9814a, roughness:0.28, metalness:0.85, clearcoat:0.4}),
+  copperWind: new THREE.MeshPhysicalMaterial({color:0xdb8a4a, roughness:0.25, metalness:0.75, clearcoat:0.5, emissive:0x502400, emissiveIntensity:0.05}),
+  redPipe: new THREE.MeshPhysicalMaterial({color:0xb63a24, roughness:0.32, metalness:0.4, clearcoat:0.7, clearcoatRoughness:0.2}),
+  yellowValve: new THREE.MeshPhysicalMaterial({color:0xdb9d1f, roughness:0.35, metalness:0.35, clearcoat:0.6, clearcoatRoughness:0.25}),
+  black: new THREE.MeshPhysicalMaterial({color:0x141a22, roughness:0.45, metalness:0.4, clearcoat:0.4}),
+  greenRing: new THREE.MeshPhysicalMaterial({color:0x2fae5e, roughness:0.3, metalness:0.4, clearcoat:0.6, emissive:0x0a3016, emissiveIntensity:0.15}),
+  concrete: new THREE.MeshStandardMaterial({color:0x5a6472, roughness:0.92}),
+  floor: new THREE.MeshStandardMaterial({color:0xe4e9ef, roughness:0.92}),
+  glass: new THREE.MeshStandardMaterial({color:0xcfe8ff, roughness:0.15, metalness:0.1, transparent:true, opacity:0.35}),
+  laminationSteel: new THREE.MeshPhysicalMaterial({color:0x9aa4b2, roughness:0.3, metalness:0.8, clearcoat:0.15}),
+  shaftSteel: new THREE.MeshPhysicalMaterial({color:0xcdd3da, roughness:0.18, metalness:0.9, clearcoat:0.3}),
+  slipRing: new THREE.MeshPhysicalMaterial({color:0xd7a94a, roughness:0.2, metalness:0.9, clearcoat:0.3}),
+  brushCarbon: new THREE.MeshStandardMaterial({color:0x1c1c1c, roughness:0.6}),
+  emissiveAmber: new THREE.MeshBasicMaterial({color:0xffcf5c}),
+  emissiveTeal: new THREE.MeshBasicMaterial({color:0x3fb8ac}),
+  emissiveRed: new THREE.MeshBasicMaterial({color:0xff6a4a}),
+};
+
+/* ======================================================================
+   LIGHTING (shared setup per scene)
+   ====================================================================== */
+function addLighting(scene){
+  const hemi = new THREE.HemisphereLight(0xffffff, 0xcbd6e2, 0.85);
+  scene.add(hemi);
+  const key = new THREE.DirectionalLight(0xfff6e6, 1.25);
+  key.position.set(12,18,10);
+  key.castShadow = true;
+  key.shadow.mapSize.set(2048,2048);
+  key.shadow.camera.left=-25; key.shadow.camera.right=25; key.shadow.camera.top=25; key.shadow.camera.bottom=-25;
+  key.shadow.camera.far=60;
+  key.shadow.bias=-0.0006;
+  scene.add(key);
+  const fill = new THREE.DirectionalLight(0xdce8f7, 0.55);
+  fill.position.set(-14,8,-10);
+  scene.add(fill);
+  const rim = new THREE.PointLight(0xe0a72e, 0.35, 40);
+  rim.position.set(0,6,-14);
+  scene.add(rim);
+  const amb = new THREE.AmbientLight(0xffffff, 0.28);
+  scene.add(amb);
+}
+addLighting(sceneBench);
+addLighting(sceneAnatomy);
+
+function addFloor(scene, size){
+  const floor = new THREE.Mesh(new THREE.CylinderGeometry(size,size,0.3,64), MAT.floor);
+  floor.position.y=-0.15; floor.receiveShadow=true;
+  scene.add(floor);
+  const grid = new THREE.GridHelper(size*2, 40, 0xb7c3d1, 0xd9dfe7);
+  grid.position.y=0.01;
+  grid.material.opacity=0.55; grid.material.transparent=true;
+  scene.add(grid);
+}
+addFloor(sceneBench, 24);
+addFloor(sceneAnatomy, 18);
+
+/* ======================================================================
+   BENCH SCENE — motor, brake drum, rheostat bank, auto-tf, control panel
+   ====================================================================== */
+const bench = new THREE.Group();
+sceneBench.add(bench);
+
+// -- Table --
+function makeTable(x,z,w,d,h){
+  const g = new THREE.Group();
+  const top = new THREE.Mesh(new THREE.BoxGeometry(w,0.18,d), MAT.panelWhite);
+  top.position.y=h; top.castShadow=true; top.receiveShadow=true;
+  g.add(top);
+  const legOff=[[w/2-0.2,d/2-0.2],[w/2-0.2,-d/2+0.2],[-w/2+0.2,d/2-0.2],[-w/2+0.2,-d/2+0.2]];
+  legOff.forEach(([lx,lz])=>{
+    const leg=new THREE.Mesh(new THREE.BoxGeometry(0.12,h,0.12), MAT.steelGrey);
+    leg.position.set(lx,h/2,lz); leg.castShadow=true;
+    g.add(leg);
+  });
+  const shelf = new THREE.Mesh(new THREE.BoxGeometry(w*0.92,0.08,d*0.85), MAT.darkSteel);
+  shelf.position.set(0,h*0.32,0);
+  g.add(shelf);
+  g.position.set(x,0,z);
+  return g;
+}
+const mainTable = makeTable(0,0,10.5,4.6,3.2);
+bench.add(mainTable);
+
+// -- Motor body (green PSG-style motor) --
+const motorGroup = new THREE.Group();
+const motorBody = new THREE.Mesh(new THREE.CylinderGeometry(1.15,1.15,3.0,40), MAT.motorGreen);
+motorBody.rotation.z = Math.PI/2;
+motorBody.castShadow = true;
+motorBody.receiveShadow = true;
+motorGroup.add(motorBody);
+// cooling ribs (finer pitch, slightly larger tube for a cast-iron finned look)
+for(let i=0;i<20;i++){
+  const rib = new THREE.Mesh(new THREE.TorusGeometry(1.18,0.05,6,40), MAT.motorGreen);
+  rib.rotation.y = Math.PI/2;
+  rib.position.x = -1.38 + i*0.145;
+  rib.castShadow = true;
+  motorGroup.add(rib);
+}
+// drive-end flange with visible mounting bolts
+const motorFront = new THREE.Mesh(new THREE.CylinderGeometry(1.22,1.22,0.22,40), MAT.darkSteel);
+motorFront.rotation.z=Math.PI/2; motorFront.position.x=1.55; motorFront.castShadow=true;
+motorGroup.add(motorFront);
+for(let i=0;i<12;i++){
+  const a=(i/12)*Math.PI*2;
+  const boltHead = new THREE.Mesh(new THREE.CylinderGeometry(0.045,0.045,0.08,6), MAT.steelGrey);
+  boltHead.rotation.z=Math.PI/2; boltHead.position.set(1.63, Math.cos(a)*1.0, Math.sin(a)*1.0);
+  motorGroup.add(boltHead);
+}
+// terminal / junction box with cable gland
+const termBox = new THREE.Mesh(new THREE.BoxGeometry(0.62,0.5,0.72), MAT.darkSteel);
+termBox.position.set(0,1.36,0); termBox.castShadow=true;
+motorGroup.add(termBox);
+const termLid = new THREE.Mesh(new THREE.BoxGeometry(0.5,0.06,0.6), MAT.steelGrey);
+termLid.position.set(0,1.62,0);
+motorGroup.add(termLid);
+const gland = new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.08,0.28,12), MAT.darkSteel);
+gland.position.set(0,1.1,0.5); gland.rotation.x = Math.PI/2.6;
+motorGroup.add(gland);
+// engraved-look nameplate on the motor body
+const nameplate = new THREE.Mesh(new THREE.BoxGeometry(0.05,0.42,0.72), MAT.steelGrey);
+nameplate.position.set(0.15,0,1.16);
+motorGroup.add(nameplate);
+for(let i=0;i<4;i++){
+  const line = new THREE.Mesh(new THREE.BoxGeometry(0.008,0.035,0.56), MAT.darkSteel);
+  line.position.set(0.18,0.14-i*0.1,1.16);
+  motorGroup.add(line);
+}
+// static cooling-fan cage on the non-drive end (does NOT rotate — the grille housing)
+const fanCage = new THREE.Group();
+const fanCageRing = new THREE.Mesh(new THREE.TorusGeometry(1.0,0.055,10,32), MAT.darkSteel);
+fanCageRing.rotation.y=Math.PI/2; fanCageRing.position.x=-1.62;
+fanCage.add(fanCageRing);
+const fanCageRing2 = new THREE.Mesh(new THREE.TorusGeometry(0.55,0.03,8,24), MAT.darkSteel);
+fanCageRing2.rotation.y=Math.PI/2; fanCageRing2.position.x=-1.68;
+fanCage.add(fanCageRing2);
+for(let i=0;i<8;i++){
+  const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.018,0.018,2.0,6), MAT.darkSteel);
+  bar.rotation.z=Math.PI/2; bar.position.set(-1.65,0,0);
+  bar.rotation.y = (i/8)*Math.PI;
+  fanCage.add(bar);
+}
+motorGroup.add(fanCage);
+// mounting feet (base flanges bolting the motor to the bench top)
+[[-0.85,'a'],[0.85,'b']].forEach(([fx])=>{
+  const foot = new THREE.Mesh(new THREE.BoxGeometry(0.4,0.16,1.7), MAT.darkSteel);
+  foot.position.set(fx,-1.22,0); foot.castShadow=true; foot.receiveShadow=true;
+  motorGroup.add(foot);
+  [[-0.6],[0.6]].forEach(([fz])=>{
+    const bolt = new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,0.22,8), MAT.steelGrey);
+    bolt.position.set(fx,-1.14,fz);
+    motorGroup.add(bolt);
+  });
+});
+motorGroup.position.set(-1.4, 3.2+1.15, 1.1);
+bench.add(motorGroup);
+
+// -- shaft + coupling (this whole group physically spins when the motor runs) --
+const shaftGroup = new THREE.Group();
+const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.16,0.16,3.2,16), MAT.shaftSteel);
+shaft.rotation.z=Math.PI/2;
+shaftGroup.add(shaft);
+const coupling = new THREE.Mesh(new THREE.CylinderGeometry(0.34,0.34,0.5,20), MAT.darkSteel);
+coupling.rotation.z=Math.PI/2; coupling.position.x=1.75;
+shaftGroup.add(coupling);
+// high-contrast rotation markers so the spin is unmistakable
+const shaftStripe = new THREE.Mesh(new THREE.BoxGeometry(2.6,0.05,0.05), MAT.emissiveAmber);
+shaftStripe.position.set(0.3,0.17,0);
+shaftGroup.add(shaftStripe);
+for(let i=0;i<4;i++){
+  const bolt = new THREE.Mesh(new THREE.SphereGeometry(0.045,8,8), MAT.emissiveRed);
+  const a=(i/4)*Math.PI*2;
+  bolt.position.set(1.75, Math.cos(a)*0.3, Math.sin(a)*0.3);
+  shaftGroup.add(bolt);
+}
+// rotating fan blades behind the cage (child of shaftGroup so it visibly spins)
+const fanBlades = new THREE.Group();
+for(let i=0;i<6;i++){
+  const blade = new THREE.Mesh(new THREE.BoxGeometry(0.75,0.16,0.02), MAT.darkSteel);
+  const a=(i/6)*Math.PI*2;
+  blade.position.set(-1.62, Math.cos(a)*0.4, Math.sin(a)*0.4);
+  blade.rotation.x = a;
+  fanBlades.add(blade);
+}
+shaftGroup.add(fanBlades);
+shaftGroup.position.copy(motorGroup.position);
+bench.add(shaftGroup);
+
+// -- pulley / drum (green ring near coupling per photo) --
+const pulley = new THREE.Group();
+const drumCore = new THREE.Mesh(new THREE.CylinderGeometry(0.62,0.62,0.55,28), MAT.greenRing);
+drumCore.rotation.z=Math.PI/2;
+pulley.add(drumCore);
+const drumBlack = new THREE.Mesh(new THREE.CylinderGeometry(0.66,0.66,0.22,28), MAT.black);
+drumBlack.rotation.z=Math.PI/2;
+pulley.add(drumBlack);
+// rotation markers on the drum rim so load/speed is visually readable
+for(let i=0;i<6;i++){
+  const a=(i/6)*Math.PI*2;
+  const mark = new THREE.Mesh(new THREE.BoxGeometry(0.24,0.05,0.05), MAT.emissiveAmber);
+  mark.position.set(0, Math.cos(a)*0.63, Math.sin(a)*0.63);
+  mark.rotation.x = a;
+  pulley.add(mark);
+}
+pulley.position.set(motorGroup.position.x+2.15, motorGroup.position.y, motorGroup.position.z);
+bench.add(pulley);
+
+// -- brake frame (red pipes + yellow valve wheels + spring balances) --
+const brakeFrame = new THREE.Group();
+const pedestal = new THREE.Mesh(new THREE.BoxGeometry(1.5,1.9,1.3), MAT.concrete);
+pedestal.position.set(0, 0.95, 0); pedestal.castShadow=true; pedestal.receiveShadow=true;
+brakeFrame.add(pedestal);
+[[-0.42,0],[0.42,0]].forEach(([ox,oz])=>{
+  const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.09,0.09,3.4,16), MAT.redPipe);
+  pipe.position.set(ox,1.9+1.7,oz); pipe.castShadow=true;
+  brakeFrame.add(pipe);
+  const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.28,0.28,0.16,20), MAT.yellowValve);
+  wheel.rotation.x=Math.PI/2; wheel.position.set(ox,1.9+3.55,oz);
+  brakeFrame.add(wheel);
+  for(let a=0;a<4;a++){
+    const spoke = new THREE.Mesh(new THREE.BoxGeometry(0.5,0.05,0.05), MAT.yellowValve);
+    spoke.position.copy(wheel.position); spoke.rotation.y = a*Math.PI/4;
+    brakeFrame.add(spoke);
+  }
+});
+const crossTop = new THREE.Mesh(new THREE.BoxGeometry(0.95,0.09,0.09), MAT.redPipe);
+crossTop.position.set(0,1.9+3.3,0);
+brakeFrame.add(crossTop);
+// spring balance dials
+const dials = [];
+[-0.24,0.24].forEach((ox,i)=>{
+  const dg = new THREE.Group();
+  const casing = new THREE.Mesh(new THREE.CylinderGeometry(0.34,0.34,0.14,24), MAT.steelGrey);
+  casing.rotation.x=Math.PI/2;
+  dg.add(casing);
+  const face = new THREE.Mesh(new THREE.CircleGeometry(0.3,24), MAT.panelWhite);
+  face.position.z=0.08;
+  dg.add(face);
+  const needle = new THREE.Mesh(new THREE.BoxGeometry(0.22,0.022,0.01), MAT.black);
+  needle.position.z=0.09; needle.position.x=0.06;
+  dg.add(needle);
+  dg.userData.needle = needle;
+  dg.position.set(ox, 1.9+2.35 - i*0.55, 0.68);
+  brakeFrame.add(dg);
+  dials.push(dg);
+});
+// hook + rope loop visual around pulley
+const ropeMat = new THREE.MeshStandardMaterial({color:0x1c1c1c, roughness:0.8});
+const rope = new THREE.Mesh(new THREE.TorusGeometry(0.66,0.03,8,28,Math.PI*1.7), ropeMat);
+rope.rotation.y=Math.PI/2; rope.rotation.z=0.2;
+rope.position.set(pulley.position.x, pulley.position.y, pulley.position.z);
+brakeFrame.add(rope);
+// friction glow at the rope/drum contact — brightens with brake load while running
+const frictionSpark = new THREE.PointLight(0xff6a4a, 0, 1.4);
+frictionSpark.position.set(pulley.position.x, pulley.position.y-0.6, pulley.position.z+0.5);
+brakeFrame.add(frictionSpark);
+// wire brush accessory
+const brushHandle = new THREE.Mesh(new THREE.BoxGeometry(0.5,0.09,0.14), new THREE.MeshStandardMaterial({color:0xd8b978,roughness:0.7}));
+brushHandle.position.set(0.85,1.9+0.12,0.55);
+brakeFrame.add(brushHandle);
+
+brakeFrame.position.set(pulley.position.x, 0, pulley.position.z);
+bench.add(brakeFrame);
+
+// -- Rotor rheostat bank (grey cylindrical resistor units under table) --
+const rheoBank = new THREE.Group();
+for(let i=0;i<5;i++){
+  const unit = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.16,0.16,1.5,16), MAT.darkSteel);
+  body.rotation.z=Math.PI/2; body.castShadow=true;
+  unit.add(body);
+  const cap1 = new THREE.Mesh(new THREE.CylinderGeometry(0.19,0.19,0.12,16), MAT.steelGrey);
+  cap1.rotation.z=Math.PI/2; cap1.position.x=0.75;
+  unit.add(cap1);
+  const cap2 = cap1.clone(); cap2.position.x=-0.75;
+  unit.add(cap2);
+  unit.position.set(-2.6 + i*0.5, 1.35, -0.9+i*0.32);
+  unit.rotation.y = 0.55;
+  rheoBank.add(unit);
+}
+bench.add(rheoBank);
+const rheoUnits = rheoBank.children;
+
+// -- Auto-transformer box --
+const autoTf = new THREE.Group();
+const tfBody = new THREE.Mesh(new THREE.BoxGeometry(0.85,1.6,0.85), MAT.darkSteel);
+tfBody.position.y=3.2+0.8; tfBody.castShadow=true;
+autoTf.add(tfBody);
+for(let i=0;i<8;i++){
+  const slot = new THREE.Mesh(new THREE.BoxGeometry(0.02,1.2,0.7), MAT.black);
+  slot.position.set(-0.44+i*0.012, 3.2+0.8, 0);
+  autoTf.add(slot);
+}
+const tfDial = new THREE.Mesh(new THREE.CylinderGeometry(0.14,0.14,0.1,20), MAT.yellowValve);
+tfDial.position.set(0,3.2+1.72,0.3);
+autoTf.add(tfDial);
+autoTf.userData.dial = tfDial;
+autoTf.position.set(-4.6,0,-0.6);
+bench.add(autoTf);
+
+// -- Control / meter panel board --
+const meterPanel = new THREE.Group();
+const board = new THREE.Mesh(new THREE.BoxGeometry(2.6,0.05,1.15), MAT.panelBoard);
+board.rotation.x = -0.15;
+board.position.set(0, 3.55, -1.5);
+meterPanel.add(board);
+const meterMeshes = [];
+[[-0.9,'v'],[-0.3,'a1'],[0.3,'a2'],[0.9,'rpm']].forEach(([mx,tag])=>{
+  const bezel = new THREE.Mesh(new THREE.CylinderGeometry(0.24,0.24,0.06,24), MAT.steelGrey);
+  bezel.rotation.x = Math.PI/2 - 0.15;
+  bezel.position.set(mx, 3.6, -1.47);
+  meterPanel.add(bezel);
+  const face = new THREE.Mesh(new THREE.CircleGeometry(0.2,24), MAT.panelWhite);
+  face.rotation.x = -0.15; face.position.set(mx,3.61,-1.435);
+  meterPanel.add(face);
+  const needle = new THREE.Mesh(new THREE.BoxGeometry(0.16,0.016,0.01), MAT.red);
+  needle.rotation.x = -0.15; needle.position.set(mx+0.03,3.615,-1.42);
+  meterPanel.add(needle);
+  meterMeshes.push({tag,needle});
+});
+bench.add(meterPanel);
+
+// wires (visual clutter like the photos)
+function addWire(pts, color){
+  const curve = new THREE.CatmullRomCurve3(pts);
+  const geo = new THREE.TubeGeometry(curve, 20, 0.02, 6, false);
+  const mat = new THREE.MeshStandardMaterial({color});
+  return new THREE.Mesh(geo,mat);
+}
+const wireColors=[0xe0a72e,0x4f8dd6,0xc1442d,0xf2f2f2];
+for(let i=0;i<6;i++){
+  const p0 = new THREE.Vector3(-4.2+Math.random(),3.9,-1+Math.random());
+  const p1 = new THREE.Vector3(p0.x+1+Math.random(), 3.5+Math.random()*0.4, p0.z+0.8);
+  const p2 = new THREE.Vector3(p1.x+1, 3.55, p1.z-0.6);
+  bench.add(addWire([p0,p1,p2], wireColors[i%wireColors.length]));
+}
+
+/* labels for bench parts */
+const benchLabels = [
+  {obj:motorGroup, text:'3φ Slip-Ring Induction Motor · 5 HP / 415 V'},
+  {obj:brakeFrame, text:'Rope-Brake Loading Drum'},
+  {obj:autoTf, text:'3-Phase Auto-Transformer'},
+  {obj:meterPanel, text:'Instrument Panel'},
+  {obj:rheoBank, text:'Rotor Rheostat Bank'},
+];
+
+/* ======================================================================
+   ANATOMY SCENE — exploded motor
+   ====================================================================== */
+const anatomy = new THREE.Group();
+sceneAnatomy.add(anatomy);
+anatomy.rotation.z = Math.PI/2; // shaft runs vertically -> rotate so it's horizontal
+anatomy.rotation.x = 0;
+anatomy.rotation.set(0,0,Math.PI/2);
+
+const explodeGroups = {}; // name -> {mesh, restX, explodeX}
+
+function regPart(name, obj, axialOffset){
+  obj.userData.restPos = obj.position.clone();
+  obj.userData.explodeAxial = axialOffset;
+  explodeGroups[name]=obj;
+  anatomy.add(obj);
+}
+
+// shaft (spans whole assembly)
+const anShaft = new THREE.Group();
+const anShaftMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.16,0.16,9.2,20), MAT.shaftSteel);
+anShaftMesh.rotation.x = Math.PI/2;
+anShaftMesh.castShadow = true;
+anShaft.add(anShaftMesh);
+regPart('shaft', anShaft, 0);
+
+// end shield left (drive end)
+const shieldL = new THREE.Group();
+const shL = new THREE.Mesh(new THREE.CylinderGeometry(1.35,1.35,0.35,28), MAT.steelGrey);
+shL.rotation.x=Math.PI/2; shL.castShadow=true;
+shieldL.add(shL);
+const bearingL = new THREE.Mesh(new THREE.TorusGeometry(0.22,0.07,10,20), MAT.darkSteel);
+bearingL.rotation.x=Math.PI/2;
+shieldL.add(bearingL);
+shieldL.position.z = -3.6;
+regPart('shieldL', shieldL, -1.6);
+
+// rotor core (laminated cylinder) + windings + slip rings
+const rotorGroup = new THREE.Group();
+const rotorCore = new THREE.Mesh(new THREE.CylinderGeometry(0.85,0.85,2.6,24), MAT.laminationSteel);
+rotorCore.rotation.x=Math.PI/2; rotorCore.castShadow=true;
+rotorGroup.add(rotorCore);
+// lamination groove rings
+for(let i=0;i<18;i++){
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.855,0.008,6,24), MAT.darkSteel);
+  ring.rotation.x=Math.PI/2; ring.position.z=-1.25+i*0.147;
+  rotorGroup.add(ring);
+}
+// rotor windings (copper bars around rotor, angled like a real wound rotor)
+const rotorWindings = new THREE.Group();
+const nBars=12;
+for(let i=0;i<nBars;i++){
+  const ang = (i/nBars)*Math.PI*2;
+  const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,2.75,8), MAT.copperWind);
+  bar.rotation.x = Math.PI/2;
+  bar.position.set(Math.cos(ang)*0.92, Math.sin(ang)*0.92, 0);
+  rotorWindings.add(bar);
+}
+rotorGroup.add(rotorWindings);
+regPart('rotor', rotorGroup, 0);
+explodeGroups.rotor.userData.spinPart = true;
+
+// slip rings (3, copper, near right end of rotor)
+const slipGroup = new THREE.Group();
+for(let i=0;i<3;i++){
+  const ring = new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.5,0.22,28), MAT.slipRing);
+  ring.rotation.x=Math.PI/2; ring.position.z = i*0.3;
+  slipGroup.add(ring);
+}
+slipGroup.position.z = 1.85;
+regPart('slip', slipGroup, 1.4);
+explodeGroups.slip.userData.spinPart = true;
+
+// brush gear (stationary carbon brushes touching slip rings)
+const brushGroup = new THREE.Group();
+for(let i=0;i<3;i++){
+  const holder = new THREE.Mesh(new THREE.BoxGeometry(0.12,0.35,0.1), MAT.darkSteel);
+  holder.position.set(0.62,0.15,i*0.3);
+  brushGroup.add(holder);
+  const brush = new THREE.Mesh(new THREE.BoxGeometry(0.08,0.22,0.08), MAT.brushCarbon);
+  brush.position.set(0.55,0.02,i*0.3);
+  brushGroup.add(brush);
+}
+brushGroup.position.z = 1.85;
+regPart('brush', brushGroup, 2.6);
+
+// stator core (hollow cylinder surrounding rotor) + winding coils
+const statorGroup = new THREE.Group();
+const statorOuter = new THREE.Mesh(new THREE.CylinderGeometry(1.7,1.7,2.9,28,1,true), MAT.laminationSteel);
+statorOuter.rotation.x=Math.PI/2; statorOuter.castShadow=true; statorOuter.material = statorOuter.material.clone();
+statorOuter.material.side = THREE.DoubleSide;
+statorGroup.add(statorOuter);
+// visible slot teeth using small boxes ringed around
+const nSlots=24;
+for(let i=0;i<nSlots;i++){
+  const ang=(i/nSlots)*Math.PI*2;
+  const tooth = new THREE.Mesh(new THREE.BoxGeometry(0.06,0.22,2.85), MAT.darkSteel);
+  tooth.position.set(Math.cos(ang)*1.62, Math.sin(ang)*1.62, 0);
+  tooth.rotation.z = ang;
+  statorGroup.add(tooth);
+}
+// stator coils (3-phase, 6 coil groups)
+const statorCoils = new THREE.Group();
+const nCoils=6;
+for(let i=0;i<nCoils;i++){
+  const ang=(i/nCoils)*Math.PI*2;
+  const coil = new THREE.Mesh(new THREE.TorusGeometry(0.34,0.09,8,16), MAT.copperWind);
+  coil.position.set(Math.cos(ang)*1.35, Math.sin(ang)*1.35, 1.35);
+  coil.rotation.y = Math.PI/2;
+  coil.rotation.z = ang;
+  statorCoils.add(coil);
+  const coil2 = coil.clone(); coil2.position.z=-1.35;
+  statorCoils.add(coil2);
+}
+statorGroup.add(statorCoils);
+regPart('stator', statorGroup, 0);
+
+// end shield right (non-drive / fan end)
+const shieldR = new THREE.Group();
+const shR = new THREE.Mesh(new THREE.CylinderGeometry(1.35,1.35,0.35,28), MAT.steelGrey);
+shR.rotation.x=Math.PI/2; shR.castShadow=true;
+shieldR.add(shR);
+shieldR.position.z = 3.6;
+regPart('shieldR', shieldR, 1.9);
+
+// cooling fan
+const fanGroup = new THREE.Group();
+const fanHub = new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.22,0.3,16), MAT.darkSteel);
+fanHub.rotation.x=Math.PI/2;
+fanGroup.add(fanHub);
+for(let i=0;i<8;i++){
+  const blade = new THREE.Mesh(new THREE.BoxGeometry(0.5,0.14,0.03), MAT.black);
+  const ang = (i/8)*Math.PI*2;
+  blade.position.set(Math.cos(ang)*0.4, Math.sin(ang)*0.4, 0);
+  blade.rotation.z = ang;
+  fanGroup.add(blade);
+}
+const fanCowl = new THREE.Mesh(new THREE.TorusGeometry(0.55,0.05,8,20), MAT.darkSteel);
+fanCowl.position.z=0.05;
+fanGroup.add(fanCowl);
+fanGroup.position.z = 4.4;
+regPart('fan', fanGroup, 2.4);
+explodeGroups.fan.userData.spinPart = true;
+
+// terminal box
+const termGroup = new THREE.Group();
+const tbox = new THREE.Mesh(new THREE.BoxGeometry(0.6,0.55,0.5), MAT.darkSteel);
+tbox.position.y=1.9;
+termGroup.add(tbox);
+regPart('terminal', termGroup, 0);
+
+/* --- rotating field visualization (arrows around stator bore) --- */
+const fluxGroup = new THREE.Group();
+const fluxArrows = [];
+for(let i=0;i<8;i++){
+  const ang=(i/8)*Math.PI*2;
+  const arrowDir = new THREE.Vector3(Math.cos(ang+Math.PI/2), Math.sin(ang+Math.PI/2), 0);
+  const arrow = new THREE.ArrowHelper(arrowDir, new THREE.Vector3(Math.cos(ang)*1.5, Math.sin(ang)*1.5, 0), 0.5, 0xffcf5c, 0.18, 0.1);
+  fluxGroup.add(arrow);
+  fluxArrows.push({arrow, baseAng:ang});
+}
+anatomy.add(fluxGroup);
+
+/* --- EMF / rotor current glow rings --- */
+const emfGroup = new THREE.Group();
+const emfRings=[];
+for(let i=0;i<4;i++){
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.95+i*0.05,0.015,6,32), MAT.emissiveTeal.clone());
+  ring.material.transparent=true;
+  ring.rotation.x=Math.PI/2;
+  emfGroup.add(ring);
+  emfRings.push(ring);
+}
+anatomy.add(emfGroup);
+
+/* --- brush spark glow --- */
+const sparkGroup = new THREE.Group();
+for(let i=0;i<3;i++){
+  const spark = new THREE.PointLight(0x4f8dd6, 0, 1.2);
+  spark.position.set(0.58,0.1,1.85+i*0.3);
+  sparkGroup.add(spark);
+}
+anatomy.add(sparkGroup);
+
+/* labels for anatomy parts */
+const anatomyLabels = [
+  {obj:statorGroup, text:'Stator Core & Windings'},
+  {obj:rotorGroup, text:'Wound Rotor Core & Windings'},
+  {obj:slipGroup, text:'Slip Rings (3)'},
+  {obj:brushGroup, text:'Brush Gear'},
+  {obj:shieldL, text:'End Shield (Drive End)'},
+  {obj:shieldR, text:'End Shield (Non-Drive)'},
+  {obj:fanGroup, text:'Cooling Fan'},
+];
+
+/* ======================================================================
+   ANALOG GAUGE SVG RENDERING
+   ====================================================================== */
+function buildGauge(svgId){
+  const svg = document.getElementById(svgId);
+  const ns='http://www.w3.org/2000/svg';
+  const cx=60, cy=64, r=48;
+  svg.innerHTML='';
+  const arc = document.createElementNS(ns,'path');
+  const startA = Math.PI*1.2, endA = Math.PI*1.8*2 - Math.PI*1.2; // placeholder, computed below properly
+  // draw 210 deg arc from -105deg to +105deg (top)
+  const a0=-105*Math.PI/180, a1=105*Math.PI/180;
+  const x0=cx+r*Math.sin(a0), y0=cy-r*Math.cos(a0);
+  const x1=cx+r*Math.sin(a1), y1=cy-r*Math.cos(a1);
+  arc.setAttribute('d',`M ${x0} ${y0} A ${r} ${r} 0 1 1 ${x1} ${y1}`);
+  arc.setAttribute('fill','none'); arc.setAttribute('stroke','#d9dfe7'); arc.setAttribute('stroke-width','5');
+  svg.appendChild(arc);
+  // tick marks
+  for(let i=0;i<=10;i++){
+    const a = a0 + (a1-a0)*(i/10);
+    const tx0=cx+(r-6)*Math.sin(a), ty0=cy-(r-6)*Math.cos(a);
+    const tx1=cx+(r+2)*Math.sin(a), ty1=cy-(r+2)*Math.cos(a);
+    const tick=document.createElementNS(ns,'line');
+    tick.setAttribute('x1',tx0);tick.setAttribute('y1',ty0);tick.setAttribute('x2',tx1);tick.setAttribute('y2',ty1);
+    tick.setAttribute('stroke', i%5===0? '#55677c':'#b7c3d1'); tick.setAttribute('stroke-width', i%5===0?1.6:1);
+    svg.appendChild(tick);
+  }
+  const needle = document.createElementNS(ns,'line');
+  needle.setAttribute('x1',cx); needle.setAttribute('y1',cy);
+  needle.setAttribute('x2',cx); needle.setAttribute('y2',cy-r+10);
+  needle.setAttribute('stroke','#c1442d'); needle.setAttribute('stroke-width','2.5'); needle.setAttribute('stroke-linecap','round');
+  needle.setAttribute('transform-origin',`${cx}px ${cy}px`);
+  svg.appendChild(needle);
+  const hub = document.createElementNS(ns,'circle');
+  hub.setAttribute('cx',cx); hub.setAttribute('cy',cy); hub.setAttribute('r',4.5); hub.setAttribute('fill','#1b2734');
+  svg.appendChild(hub);
+  return {needle,cx,cy,a0,a1};
+}
+const gauges = {
+  speed: buildGauge('gaugeSpeed'),
+  volt: buildGauge('gaugeVolt'),
+  statorI: buildGauge('gaugeStatorI'),
+  rotorI: buildGauge('gaugeRotorI'),
+  load: buildGauge('gaugeLoad'),
+};
+function setGauge(g, frac){
+  frac = Math.min(Math.max(frac,0),1);
+  const a = g.a0 + (g.a1-g.a0)*frac;
+  const deg = a*180/Math.PI;
+  g.needle.setAttribute('transform', `rotate(${deg} ${g.cx} ${g.cy})`);
+}
+
+/* ======================================================================
+   UI WIRING
+   ====================================================================== */
+const $ = id=>document.getElementById(id);
+function setFill(input){ const p=(input.value-input.min)/(input.max-input.min)*100; input.style.setProperty('--fill', p+'%'); }
+
+// tabs
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    state.view = btn.dataset.view;
+    document.getElementById('bench-panel').style.display = state.view==='bench'?'block':'none';
+    document.getElementById('anatomy-panel').style.display = state.view==='anatomy'?'block':'none';
+    document.getElementById('viewLabel').textContent = state.view==='bench' ? '01 — LIVE SIMULATION' : '02 — CONSTRUCTION & WORKING PRINCIPLE';
+    document.getElementById('viewTitle').textContent = state.view==='bench' ? 'Electrical Machines Lab · Bay 24' : 'Three-Phase Slip-Ring Induction Motor — Exploded View';
+    document.getElementById('viewHint').textContent = state.view==='bench' ? 'drag to orbit · scroll to zoom · right-drag to pan' : 'drag to orbit · scroll to zoom · use panel to explode & inspect';
+    clearLabels();
+  });
+});
+
+// method select
+document.querySelectorAll('.method-opt').forEach(opt=>{
+  opt.addEventListener('click', ()=>{
+    document.querySelectorAll('.method-opt').forEach(o=>o.classList.remove('active'));
+    opt.classList.add('active');
+    state.method = opt.dataset.method;
+    $('voltageSliderWrap').style.display = state.method==='voltage' ? 'block':'none';
+    $('rheoSliderWrap').style.display = state.method==='rheostat' ? 'block':'none';
+    $('poleSelectWrap').style.display = state.method==='pole' ? 'block':'none';
+  });
+});
+$('voltageSliderWrap').style.display='none';
+
+const vSlider=$('vSlider'), rSlider=$('rSlider'), lSlider=$('lSlider');
+vSlider.addEventListener('input', ()=>{ state.statorVoltage=+vSlider.value; $('vVal').textContent=vSlider.value+' V'; setFill(vSlider); });
+rSlider.addEventListener('input', ()=>{ state.rotorPct=+rSlider.value; $('rVal').textContent=rSlider.value+' %'; setFill(rSlider); });
+lSlider.addEventListener('input', ()=>{ state.loadPct=+lSlider.value; $('lVal').textContent=lSlider.value+' %'; setFill(lSlider); });
+[vSlider,rSlider,lSlider].forEach(setFill);
+
+document.querySelectorAll('.pole-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.pole-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    state.poles=+btn.dataset.poles;
+    $('pVal').textContent = state.poles+' P';
+  });
+});
+
+$('startBtn').addEventListener('click', ()=>{
+  state.running=true;
+  $('startBtn').classList.add('running');
+  $('statusChip').classList.add('on');
+  $('statusText').textContent='RUNNING';
+});
+$('stopBtn').addEventListener('click', ()=>{
+  state.running=false;
+  $('startBtn').classList.remove('running');
+  $('statusChip').classList.remove('on');
+  $('statusText').textContent='STOPPED';
+});
+
+// anatomy controls
+const explodeSlider = $('explodeSlider');
+let explodeFrac = 1;
+explodeSlider.addEventListener('input', ()=>{ explodeFrac = explodeSlider.value/100; $('explodeVal').textContent=explodeSlider.value+' %'; setFill(explodeSlider); });
+setFill(explodeSlider);
+
+let showSpin=true, showFlux=true, showEmf=true, showBrush=true;
+function wireToggle(id, setter){
+  const el = $(id);
+  el.addEventListener('click', ()=>{ el.classList.toggle('on'); setter(el.classList.contains('on')); });
+}
+wireToggle('toggleSpin', v=>showSpin=v);
+wireToggle('toggleFlux', v=>showFlux=v);
+wireToggle('toggleEmf', v=>showEmf=v);
+wireToggle('toggleBrush', v=>showBrush=v);
+
+document.querySelectorAll('.part-chip').forEach(chip=>{
+  chip.addEventListener('click', ()=>{
+    document.querySelectorAll('.part-chip').forEach(c=>c.classList.remove('active'));
+    chip.classList.add('active');
+    focusPart(chip.dataset.part);
+  });
+});
+function focusPart(part){
+  const map = {stator:statorGroup, rotor:rotorGroup, slip:slipGroup, brush:brushGroup, shield:shieldL, fan:fanGroup};
+  const obj = map[part]; if(!obj) return;
+  orbitAnatomy.theta = 0.9; orbitAnatomy.phi=1.2; orbitAnatomy.radius=9;
+  applyOrbit(orbitAnatomy);
+}
+
+// mobile panel toggle
+$('panel-toggle').addEventListener('click', ()=>{ document.getElementById('sidepanel').classList.toggle('open'); });
+
+/* ======================================================================
+   FLOATING LABELS
+   ====================================================================== */
+const labelsLayer = document.getElementById('labels-layer');
+let activeLabelEls = [];
+function clearLabels(){ activeLabelEls.forEach(e=>e.remove()); activeLabelEls=[]; }
+function buildLabelSet(defs, group){
+  clearLabels();
+  defs.forEach(d=>{
+    const el = document.createElement('div');
+    el.className='part-label'; el.textContent=d.text;
+    labelsLayer.appendChild(el);
+    activeLabelEls.push(el);
+    d.el = el;
+  });
+  return defs;
+}
+let benchLabelDefs = buildLabelSet(benchLabels);
+function updateLabels(defs, group){
+  const vw=viewport.clientWidth, vh=viewport.clientHeight;
+  defs.forEach(d=>{
+    const wp = new THREE.Vector3();
+    d.obj.getWorldPosition(wp);
+    wp.y += 1.6;
+    if(group) wp.applyMatrix4(group.matrixWorld);
+    const p = wp.clone().project(camera);
+    if(p.z>1){ d.el.style.opacity=0; return; }
+    const x=(p.x*0.5+0.5)*vw, y=(1-(p.y*0.5+0.5))*vh;
+    d.el.style.left=x+'px'; d.el.style.top=y+'px';
+    d.el.style.opacity = (state.view==='bench')?1:0;
+  });
+}
+
+/* ======================================================================
+   ANIMATION LOOP
+   ====================================================================== */
+let clock = new THREE.Clock();
+let rpmSmoothed = 0;
+
+function updateBenchVisuals(dt){
+  computeReadings();
+  const targetRpm = state.running ? state.rpm : 0;
+  rpmSmoothed += (targetRpm-rpmSmoothed)*Math.min(1,dt*1.5);
+  state.rpmDisplay = rpmSmoothed;
+
+  // visible, readable spin rate: scales with actual RPM but capped so it never blurs into a smear
+  const visSpeed = Math.min((rpmSmoothed/1400)*7.2, 9);
+  state.shaftAngle += visSpeed*dt;
+  shaftGroup.rotation.x = state.shaftAngle;
+  pulley.rotation.x = state.shaftAngle;
+  fanBlades.rotation.x = state.shaftAngle*1.4;
+
+  // spring balance needle deflect with load
+  dials.forEach((d,i)=>{
+    const target = (state.loadPct/100)*0.9*(i===0?1:0.7);
+    d.userData.needle.rotation.z += ((-target)-d.userData.needle.rotation.z)*0.1;
+  });
+
+  // brake rope visibly tightens & glows hot against the drum as load increases
+  const loadFrac = state.loadPct/100;
+  const ropeScale = 1 - loadFrac*0.06;
+  rope.scale.set(1, ropeScale, ropeScale);
+  ropeMat.color.lerpColors(new THREE.Color(0x1c1c1c), new THREE.Color(0xff6a4a), loadFrac*0.85);
+  const sparkTarget = (state.running && loadFrac>0.05) ? (0.4+loadFrac*1.6)*(0.85+0.15*Math.sin(performance.now()/60)) : 0;
+  frictionSpark.intensity += (sparkTarget-frictionSpark.intensity)*0.2;
+
+  // auto-tf dial rotates with voltage
+  autoTf.userData.dial.rotation.y += ((state.statorVoltage-60)/355*Math.PI*1.4 - autoTf.userData.dial.rotation.y)*0.08;
+
+  // rheostat glow: more resistance => dimmer/hotter tint via emissive-ish scale trick using color lighten (approx by scale wobble)
+  rheoUnits.forEach((u,i)=>{
+    const active = (state.method==='rheostat') && (state.rotorPct > i*20);
+    u.scale.setScalar(active && state.running ? 1.0+Math.sin(performance.now()/300+i)*0.01 : 1.0);
+  });
+
+  // meter needles
+  const specs = {
+    v: state.method==='voltage'? state.statorVoltage/415 : state.statorVoltage/415,
+    a1: state.statorI/10,
+    a2: state.rotorI/1.0,
+    rpm: rpmSmoothed/3000,
+  };
+  meterMeshes.forEach(m=>{
+    const t = state.running? (specs[m.tag]||0):0;
+    const targetRot = -0.15 + Math.min(Math.max(t,0),1)*1.7 -0.85;
+    m.needle.rotation.z += (targetRot - m.needle.rotation.z)*0.15;
+  });
+
+  // side gauges
+  setGauge(gauges.speed, state.running? rpmSmoothed/3050:0);
+  setGauge(gauges.volt, state.running? state.statorVoltage/430:0);
+  setGauge(gauges.statorI, state.running? state.statorI/12:0);
+  setGauge(gauges.rotorI, state.running? state.rotorI/1.0:0);
+  setGauge(gauges.load, state.loadPct/100);
+
+  $('rpmRead').textContent = Math.round(rpmSmoothed);
+  $('voltRead').textContent = state.running? Math.round(state.statorVoltage):0;
+  $('statorIRead').textContent = (state.running? state.statorI:0).toFixed(1);
+  $('rotorIRead').textContent = (state.running? state.rotorI:0).toFixed(2);
+  $('loadRead').textContent = state.loadPct;
+  $('nsRead').textContent = state.ns+' RPM';
+  $('slipRead').textContent = state.running? state.slip.toFixed(3):'—';
+  $('vrRead').textContent = Math.round(state.method==='rheostat'&&state.running? state.vr:0)+' V';
+  $('torqueRead').textContent = state.loadPct+' %';
+
+  updateLabels(benchLabelDefs);
+}
+
+function updateAnatomyVisuals(dt){
+  Object.values(explodeGroups).forEach(g=>{
+    const off=g.userData.explodeAxial||0;
+    g.position.set(g.userData.restPos.x, g.userData.restPos.y, g.userData.restPos.z + off*3.2*explodeFrac);
+  });
+
+  const spin = showSpin ? dt*10 : 0;
+  if(spin){
+    rotorGroup.rotation.z += spin*0.4;
+    slipGroup.rotation.z += spin*0.4;
+    fanGroup.rotation.z += spin*0.4;
+  }
+
+  fluxGroup.visible = showFlux;
+  if(showFlux){
+    const t = performance.now()/1000;
+    fluxArrows.forEach((f,i)=>{
+      const ang = f.baseAng + t*2.2;
+      f.arrow.position.set(Math.cos(ang)*1.55, Math.sin(ang)*1.55, 0);
+      const dir = new THREE.Vector3(Math.cos(ang+Math.PI/2), Math.sin(ang+Math.PI/2),0);
+      f.arrow.setDirection(dir);
+      const hue = (i/8);
+      f.arrow.setColor(new THREE.Color().setHSL(0.11,0.85,0.55+0.15*Math.sin(t*3+i)));
+    });
+  }
+
+  emfGroup.visible = showEmf;
+  if(showEmf){
+    const t=performance.now()/1000;
+    emfRings.forEach((r,i)=>{
+      r.material.opacity = 0.25+0.35*Math.abs(Math.sin(t*3-i*0.5));
+      r.rotation.z = t*1.5;
+    });
+  }
+
+  sparkGroup.visible = showBrush;
+  if(showBrush){
+    const t=performance.now()/1000;
+    sparkGroup.children.forEach((s,i)=>{
+      s.intensity = showSpin ? (0.4+0.4*Math.abs(Math.sin(t*8+i*2))) : 0.15;
+    });
+  }
+}
+
+function animate(){
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.05);
+  if(state.view==='bench'){
+    updateBenchVisuals(dt);
+    renderer.render(sceneBench, camera);
+  } else {
+    updateAnatomyVisuals(dt);
+    renderer.render(sceneAnatomy, camera);
+  }
+}
+animate();
+
+document.getElementById('loading').style.opacity='0';
+setTimeout(()=>document.getElementById('loading').remove(),450);
+
+} // initApp
+</script>
+</body>
+</html>
