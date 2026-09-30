@@ -2,254 +2,238 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Slip-Ring Induction Motor — Test Bench Simulator</title>
+<title>Electrical Machines — Digital Twin Lab</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Barlow:wght@400;500;600&display=swap');
-
   :root{
-    --bg:#eef1f5;
-    --bg-deep:#e2e7ee;
-    --grid:rgba(30,55,90,0.07);
-    --panel:#ffffff;
-    --panel2:#f7f9fb;
-    --border:#d9dfe7;
-    --border-lit:#b7c3d1;
-    --text:#1b2734;
-    --text-dim:#55677c;
-    --text-faint:#8697a9;
-    --amber:#b9770a;
-    --amber-glow:#c9820a;
-    --red:#c1442d;
-    --red-glow:#c1442d;
-    --green:#4c7a22;
-    --green-glow:#3f7a2e;
-    --teal:#12897c;
-    --copper:#a8642f;
-    --blue-lit:#2e6bb0;
+    --bg:#08090c; --bar:#0c0e12; --line:#1c2029; --line2:#28303c;
+    --txt:#d3d9e3; --txt2:#8791a1; --txt3:#59626f;
   }
-
   *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;overflow:hidden;}
+  html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--txt);
+    font-family:'Inter',system-ui,-apple-system,sans-serif;overflow:hidden;font-size:14px;-webkit-font-smoothing:antialiased;}
 
-  .grid-bg{
-    position:fixed;inset:0;z-index:0;
-    background-image:
-      linear-gradient(var(--grid) 1px, transparent 1px),
-      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
-    background-size:38px 38px;
-    pointer-events:none;
-  }
-  .grid-bg::after{
-    content:"";position:absolute;inset:0;
-    background:radial-gradient(ellipse at 50% 0%, rgba(46,107,176,0.06), transparent 60%);
-  }
+  #shellbar{position:fixed;top:0;left:0;right:0;height:48px;z-index:50;display:flex;align-items:center;
+    justify-content:space-between;padding:0 16px;background:linear-gradient(180deg, rgba(12,14,18,0.96), rgba(12,14,18,0.82));
+    border-bottom:1px solid var(--line);backdrop-filter:blur(10px);}
+  .sb-brand{display:flex;align-items:center;gap:11px;min-width:190px;}
+  .sb-logo{width:26px;height:26px;border-radius:7px;border:1px solid var(--line2);background:#121620;
+    display:flex;align-items:center;justify-content:center;color:var(--txt2);}
+  .sb-logo svg{width:15px;height:15px;}
+  .sb-t1{font-weight:600;font-size:13px;letter-spacing:-0.01em;line-height:1.1;}
+  .sb-t2{font-size:10.5px;color:var(--txt3);margin-top:1px;}
 
-  /* ===== Top bar ===== */
-  #topbar{
-    position:fixed;top:0;left:0;right:0;height:64px;z-index:50;
-    display:flex;align-items:center;justify-content:space-between;
-    padding:0 22px;
-    background:linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,0.92));
-    border-bottom:1px solid var(--border);
-    backdrop-filter:blur(6px);
-  }
-  .brand{display:flex;align-items:center;gap:12px;}
-  .brand-mark{
-    width:34px;height:34px;border:2px solid var(--amber);border-radius:3px;
-    display:flex;align-items:center;justify-content:center;
-    font-family:'Oswald';font-weight:700;font-size:15px;color:var(--amber);
-    transform:rotate(0deg);
-    box-shadow:0 0 14px rgba(224,167,46,0.25) inset;
-  }
-  .brand-text .t1{font-family:'Oswald';font-weight:600;font-size:16px;letter-spacing:0.5px;line-height:1;}
-  .brand-text .t2{font-family:'JetBrains Mono';font-size:10px;color:var(--text-faint);letter-spacing:1.5px;margin-top:3px;}
+  .sb-switch{display:flex;gap:4px;background:rgba(0,0,0,0.25);border:1px solid var(--line);border-radius:10px;padding:4px;}
+  .sb-tab{display:flex;align-items:center;gap:8px;font-family:'Inter';font-weight:500;font-size:12.5px;color:var(--txt2);
+    background:transparent;border:none;padding:8px 14px;border-radius:7px;cursor:pointer;transition:all .18s;}
+  .sb-tab:hover:not(.active){color:var(--txt);}
+  .sb-tab.active{background:#161b24;color:var(--txt);box-shadow:inset 0 0 0 1px var(--line2);}
+  .sb-dot{width:7px;height:7px;border-radius:50%;background:var(--c,#555);opacity:0.55;transition:opacity .18s, box-shadow .18s;}
+  .sb-tab.active .sb-dot{opacity:1;box-shadow:0 0 0 3px color-mix(in srgb, var(--c) 22%, transparent);}
 
-  .tabs{display:flex;gap:2px;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:3px;}
-  .tab-btn{
-    font-family:'Oswald';font-weight:500;font-size:13px;letter-spacing:0.6px;
-    color:var(--text-dim);background:transparent;border:none;padding:9px 18px;border-radius:6px;
-    cursor:pointer;transition:all .2s ease;text-transform:uppercase;
-  }
-  .tab-btn.active{background:linear-gradient(180deg,#fff,#eef2f7);color:var(--amber-glow);box-shadow:0 0 0 1px var(--border-lit) inset, 0 1px 3px rgba(20,40,70,0.12);}
-  .tab-btn:hover:not(.active){color:var(--text);}
+  .sb-right{min-width:190px;display:flex;justify-content:flex-end;}
+  .sb-tag{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--txt3);border:1px solid var(--line);
+    border-radius:6px;padding:4px 9px;}
 
-  .status-chip{
-    font-family:'JetBrains Mono';font-size:11px;padding:7px 12px;border-radius:6px;
-    border:1px solid var(--border);color:var(--text-faint);display:flex;align-items:center;gap:7px;
-  }
-  .status-dot{width:7px;height:7px;border-radius:50%;background:#b7c3d1;transition:all .3s;}
-  .status-chip.on .status-dot{background:var(--green-glow);box-shadow:0 0 8px var(--green-glow);}
-  .status-chip.on{color:var(--green-glow);border-color:rgba(168,224,95,0.35);}
+  #stage{position:fixed;top:48px;left:0;right:0;bottom:0;background:#000;}
+  .exp-frame{position:absolute;inset:0;width:100%;height:100%;border:0;display:none;background:#0b0e13;}
+  .exp-frame.active{display:block;}
 
-  /* ===== layout ===== */
-  #app{position:fixed;top:64px;left:0;right:0;bottom:0;z-index:1;display:flex;}
-  #viewport{flex:1;position:relative;}
-  canvas{display:block;}
-
-  .view-label{
-    position:absolute;top:16px;left:20px;
-    font-family:'JetBrains Mono';font-size:11px;color:var(--text-faint);
-    letter-spacing:2px;text-transform:uppercase;
-  }
-  .view-title{
-    position:absolute;top:34px;left:20px;
-    font-family:'Oswald';font-weight:600;font-size:22px;color:var(--text);
-  }
-
-  .hint{
-    position:absolute;bottom:16px;left:20px;
-    font-family:'JetBrains Mono';font-size:10.5px;color:var(--text-faint);
-    background:rgba(15,29,46,0.7);padding:6px 10px;border-radius:5px;border:1px solid var(--border);
-  }
-
-  /* floating part labels */
-  .part-label{
-    position:absolute;transform:translate(-50%,-100%);
-    font-family:'JetBrains Mono';font-size:10.5px;color:var(--amber-glow);
-    background:rgba(9,16,26,0.82);border:1px solid rgba(224,167,46,0.4);
-    padding:3px 7px;border-radius:4px;white-space:nowrap;pointer-events:none;
-    transition:opacity .15s;
-  }
-  .part-label::after{
-    content:"";position:absolute;left:50%;top:100%;transform:translateX(-50%);
-    border:4px solid transparent;border-top-color:rgba(224,167,46,0.4);
-  }
-
-  /* ===== side panel ===== */
-  #sidepanel{
-    width:346px;min-width:346px;
-    background:linear-gradient(180deg, var(--panel), var(--bg-deep));
-    border-left:1px solid var(--border);
-    overflow-y:auto;padding:18px 16px 40px;
-  }
-  #sidepanel::-webkit-scrollbar{width:7px;}
-  #sidepanel::-webkit-scrollbar-thumb{background:var(--border-lit);border-radius:6px;}
-
-  .panel-card{
-    background:var(--panel2);border:1px solid var(--border);border-radius:10px;
-    padding:14px 15px;margin-bottom:14px;
-  }
-  .panel-card h3{
-    margin:0 0 12px;font-family:'Oswald';font-weight:500;font-size:12.5px;letter-spacing:1.6px;
-    color:var(--text-faint);text-transform:uppercase;display:flex;align-items:center;gap:8px;
-  }
-  .panel-card h3::before{content:"";width:3px;height:13px;background:var(--amber);border-radius:2px;display:inline-block;}
-
-  .method-select{display:flex;flex-direction:column;gap:6px;}
-  .method-opt{
-    display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:7px;border:1px solid var(--border);
-    cursor:pointer;transition:all .15s;background:rgba(255,255,255,0.015);
-  }
-  .method-opt:hover{border-color:var(--border-lit);}
-  .method-opt.active{border-color:var(--teal);background:rgba(63,184,172,0.09);}
-  .method-opt .dot{width:9px;height:9px;border-radius:50%;border:2px solid var(--text-faint);flex-shrink:0;}
-  .method-opt.active .dot{border-color:var(--teal);background:var(--teal);box-shadow:0 0 6px var(--teal);}
-  .method-opt .mtxt .m1{font-family:'Oswald';font-size:13px;font-weight:500;}
-  .method-opt .mtxt .m2{font-family:'JetBrains Mono';font-size:9.5px;color:var(--text-faint);margin-top:1px;}
-
-  .slider-row{margin-bottom:14px;}
-  .slider-row:last-child{margin-bottom:0;}
-  .slider-label{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px;}
-  .slider-label .sl-name{font-family:'Barlow';font-size:12.5px;color:var(--text-dim);}
-  .slider-label .sl-val{font-family:'JetBrains Mono';font-size:13px;color:var(--amber-glow);font-weight:700;}
-  input[type=range]{
-    -webkit-appearance:none;width:100%;height:5px;border-radius:3px;
-    background:linear-gradient(90deg, var(--teal) 0%, var(--teal) var(--fill,50%), #dbe2ea var(--fill,50%));
-    outline:none;
-  }
-  input[type=range]::-webkit-slider-thumb{
-    -webkit-appearance:none;width:16px;height:16px;border-radius:50%;
-    background:#eef4fb;border:3px solid var(--teal);cursor:pointer;box-shadow:0 0 8px rgba(63,184,172,0.6);
-  }
-  input[type=range]:disabled{opacity:0.35;}
-  input[type=range]:disabled::-webkit-slider-thumb{cursor:not-allowed;}
-
-  .pole-select{display:flex;gap:6px;}
-  .pole-btn{
-    flex:1;padding:9px 0;text-align:center;border:1px solid var(--border);border-radius:7px;
-    font-family:'JetBrains Mono';font-size:12px;color:var(--text-dim);cursor:pointer;background:rgba(255,255,255,0.02);
-  }
-  .pole-btn.active{border-color:var(--amber);color:var(--amber-glow);background:rgba(224,167,46,0.1);}
-
-  .btn-row{display:flex;gap:8px;margin-top:4px;}
-  .btn{
-    flex:1;padding:12px 0;border-radius:8px;border:1px solid var(--border);cursor:pointer;
-    font-family:'Oswald';font-weight:600;font-size:13.5px;letter-spacing:1px;text-transform:uppercase;
-    transition:all .15s;background:var(--panel);color:var(--text);
-  }
-  .btn-start{border-color:rgba(168,224,95,0.4);color:var(--green-glow);}
-  .btn-start:hover{background:rgba(168,224,95,0.1);}
-  .btn-start.running{background:linear-gradient(180deg,#3a5f22,#274216);color:#e9ffcf;border-color:var(--green-glow);}
-  .btn-stop{border-color:rgba(255,106,74,0.4);color:var(--red-glow);}
-  .btn-stop:hover{background:rgba(255,106,74,0.1);}
-
-  /* gauges */
-  .gauge-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
-  .gauge{text-align:center;}
-  .gauge svg{width:100%;height:auto;}
-  .gauge-name{font-family:'JetBrains Mono';font-size:9.5px;color:var(--text-faint);letter-spacing:1px;margin-top:2px;text-transform:uppercase;}
-  .gauge-read{font-family:'JetBrains Mono';font-size:15px;color:var(--text);font-weight:700;margin-top:1px;}
-  .gauge-unit{font-size:10px;color:var(--text-faint);}
-
-  .readout-strip{display:flex;justify-content:space-between;padding:9px 4px;border-bottom:1px dashed var(--border);}
-  .readout-strip:last-child{border-bottom:none;}
-  .readout-strip .rn{font-size:12px;color:var(--text-dim);}
-  .readout-strip .rv{font-family:'JetBrains Mono';font-size:13px;color:var(--amber-glow);font-weight:700;}
-
-  .mini-note{font-family:'JetBrains Mono';font-size:10px;color:var(--text-faint);line-height:1.6;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);}
-
-  /* ===== anatomy view specific ===== */
-  #anatomy-panel .infoblock{margin-bottom:16px;}
-  #anatomy-panel .infoblock h4{
-    font-family:'Oswald';font-size:14px;color:var(--amber-glow);margin:0 0 5px;letter-spacing:0.4px;
-    display:flex;align-items:center;gap:8px;
-  }
-  #anatomy-panel .infoblock h4 .ic{width:8px;height:8px;border-radius:2px;background:var(--teal);display:inline-block;}
-  #anatomy-panel .infoblock p{font-size:12.5px;line-height:1.65;color:var(--text-dim);margin:0;}
-  #anatomy-panel .infoblock .formula{
-    font-family:'JetBrains Mono';font-size:12px;color:var(--amber-glow);background:rgba(224,167,46,0.08);
-    border:1px solid rgba(224,167,46,0.25);padding:6px 9px;border-radius:6px;margin-top:6px;display:inline-block;
-  }
-
-  .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px dashed var(--border);}
-  .toggle-row:last-child{border:none;}
-  .toggle-row .tn{font-size:12.5px;color:var(--text-dim);}
-  .switch{width:38px;height:20px;border-radius:12px;background:#dbe2ea;border:1px solid var(--border);position:relative;cursor:pointer;flex-shrink:0;}
-  .switch .knob{position:absolute;top:1px;left:1px;width:16px;height:16px;border-radius:50%;background:var(--text-faint);transition:all .18s;}
-  .switch.on{background:rgba(63,184,172,0.25);border-color:var(--teal);}
-  .switch.on .knob{left:19px;background:var(--teal);box-shadow:0 0 6px var(--teal);}
-
-  .part-nav{display:flex;flex-wrap:wrap;gap:6px;}
-  .part-chip{
-    padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-family:'JetBrains Mono';
-    font-size:10.5px;color:var(--text-dim);cursor:pointer;background:rgba(255,255,255,0.02);
-  }
-  .part-chip.active{border-color:var(--teal);color:var(--teal);background:rgba(63,184,172,0.1);}
-
-  #loading{
-    position:fixed;inset:0;z-index:200;background:var(--bg-deep);display:flex;align-items:center;justify-content:center;
-    flex-direction:column;gap:14px;transition:opacity .4s;
-  }
-  #loading .spin{width:44px;height:44px;border:3px solid #e5e9ee;border-top-color:var(--amber);border-radius:50%;animation:spin 0.9s linear infinite;}
+  #stageLoader{position:absolute;inset:0;z-index:5;display:none;align-items:center;justify-content:center;
+    background:var(--bg);}
+  #stageLoader.show{display:flex;}
+  .sl-ring{width:38px;height:38px;border-radius:50%;border:2px solid #171b22;border-top-color:#8791a1;animation:spin .9s linear infinite;}
   @keyframes spin{to{transform:rotate(360deg);}}
-  #loading .lt{font-family:'JetBrains Mono';font-size:12px;color:var(--text-faint);letter-spacing:1px;}
 
-  @media (max-width:900px){
-    #sidepanel{position:fixed;right:0;top:64px;bottom:0;transform:translateX(100%);transition:transform .25s;box-shadow:-10px 0 30px rgba(0,0,0,0.5);}
-    #sidepanel.open{transform:translateX(0);}
-    #panel-toggle{display:flex !important;}
-  }
-  #panel-toggle{
-    display:none;position:absolute;top:16px;right:16px;z-index:40;width:40px;height:40px;border-radius:8px;
-    background:var(--panel2);border:1px solid var(--border);color:var(--amber-glow);align-items:center;justify-content:center;
-    font-size:18px;cursor:pointer;
+  @media (max-width:820px){
+    .sb-brand .sb-t2{display:none;} .sb-brand{min-width:44px;} .sb-right{display:none;}
+    .sb-tab{padding:8px 10px;font-size:11.5px;}
   }
 </style>
 </head>
 <body>
 
-<div id="loading"><div class="spin"></div><div class="lt">INITIALIZING 3D TEST BENCH…</div></div>
+<div id="shellbar">
+  <div class="sb-brand">
+    <span class="sb-logo"><svg viewBox="0 0 24 24" fill="none" stroke="#8791a1" stroke-width="1.5"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2" stroke-linecap="round"/></svg></span>
+    <div class="sb-txt"><div class="sb-t1">Electrical Machines II</div><div class="sb-t2">Digital Twin Lab</div></div>
+  </div>
+  <div class="sb-switch" id="switcher">
+    <button class="sb-tab active" data-exp="motor"><span class="sb-dot" style="--c:#93a158"></span>Induction motor</button>
+    <button class="sb-tab" data-exp="alt"><span class="sb-dot" style="--c:#54b0a9"></span>Alternator on bus</button>
+    <button class="sb-tab" data-exp="zpf"><span class="sb-dot" style="--c:#7c8cf0"></span>ZPF regulation</button>
+  </div>
+  <div class="sb-right"><span class="sb-tag">Static build</span></div>
+</div>
+
+<div id="stage">
+  <div id="stageLoader"><div class="sl-ring"></div></div>
+  <iframe class="exp-frame active" id="ifr-motor" title="Induction motor"></iframe>
+  <iframe class="exp-frame" id="ifr-alt" title="Alternator on infinite bus"></iframe>
+  <iframe class="exp-frame" id="ifr-zpf" title="ZPF regulation"></iframe>
+</div>
+
+<script type="text/html" id="tpl-motor"><!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Slip-Ring Induction Motor — Test Bench Simulator</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+  :root{
+    --bg:#100f0c; --bg-deep:#14120d;
+    --panel:rgba(22,20,15,0.80); --panel2:rgba(17,15,11,0.85); --panel-hi:#221f18;
+    --border:#2a271f; --border-lit:#39352a;
+    --text:#e3dfd2; --text-dim:#a49d89; --text-faint:#6f6957;
+    --amber:#d2a24a; --amber2:#b1853a; --amber-soft:rgba(210,162,74,0.13);
+    --olive:#93a158; --olive-soft:rgba(147,161,88,0.14); --olive2:#71803f;
+    --red:#cf5b45; --red-soft:rgba(207,91,69,0.14);
+    --ok:#93a158; --copper:#c08a45;
+    --shadow:0 10px 30px rgba(0,0,0,0.45);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--text);
+    font-family:'Inter',system-ui,-apple-system,sans-serif;overflow:hidden;font-size:14px;-webkit-font-smoothing:antialiased;}
+  .mono,.gauge-read,.sl-val,.rv,.status-chip,.brand-text .t2,.view-label,.formula{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;}
+
+  .grid-bg{position:fixed;inset:0;z-index:0;pointer-events:none;
+    background:
+      radial-gradient(1100px 650px at 60% 4%, rgba(70,60,36,0.30), transparent 60%),
+      radial-gradient(900px 900px at 50% 120%, rgba(0,0,0,0.5), transparent 55%);}
+  .grid-bg::after{content:none;}
+
+  #topbar{position:fixed;top:0;left:0;right:0;height:58px;z-index:50;display:flex;align-items:center;
+    justify-content:space-between;padding:0 20px;background:linear-gradient(180deg, rgba(16,14,10,0.94), rgba(16,14,10,0.72));
+    border-bottom:1px solid var(--border);backdrop-filter:blur(10px);}
+  .brand{display:flex;align-items:center;gap:12px;}
+  .brand-mark{width:32px;height:32px;border:1px solid var(--olive2);border-radius:7px;background:var(--panel-hi);
+    display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px;color:var(--olive);box-shadow:none;}
+  .brand-text .t1{font-family:'Inter';font-weight:600;font-size:14px;letter-spacing:-0.01em;line-height:1.1;color:var(--text);text-transform:none;}
+  .brand-text .t2{font-size:10.5px;color:var(--text-faint);letter-spacing:0;margin-top:2px;text-transform:none;}
+
+  .tabs{display:flex;gap:3px;background:rgba(0,0,0,0.2);border:1px solid var(--border);border-radius:9px;padding:3px;}
+  .tab-btn{font-family:'Inter';font-weight:500;font-size:12.5px;letter-spacing:0;color:var(--text-dim);
+    background:transparent;border:none;padding:8px 15px;border-radius:6px;cursor:pointer;transition:all .18s;text-transform:none;}
+  .tab-btn.active{background:var(--panel-hi);color:var(--amber);box-shadow:none;}
+  .tab-btn:hover:not(.active){color:var(--text);}
+
+  .status-chip{font-size:11.5px;padding:7px 13px;border-radius:8px;border:1px solid var(--border);
+    color:var(--text-faint);display:flex;align-items:center;gap:8px;letter-spacing:0;background:rgba(0,0,0,0.18);transition:all .25s;}
+  .status-dot{width:7px;height:7px;border-radius:50%;background:#4a4636;transition:all .25s;}
+  .status-chip.on{color:var(--ok);border-color:rgba(147,161,88,0.4);background:var(--olive-soft);}
+  .status-chip.on .status-dot{background:var(--ok);box-shadow:0 0 0 3px rgba(147,161,88,0.14);}
+
+  #app{position:fixed;top:58px;left:0;right:0;bottom:0;z-index:1;display:flex;}
+  #viewport{flex:1;position:relative;min-width:0;}
+  canvas{display:block;}
+  #viewport::after{content:"";position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 150px rgba(0,0,0,0.5);}
+
+  .view-label{position:absolute;top:16px;left:20px;font-size:10.5px;color:var(--text-faint);letter-spacing:1px;text-transform:none;z-index:6;}
+  .view-title{position:absolute;top:32px;left:20px;font-family:'Inter';font-weight:600;font-size:18px;color:var(--text);z-index:6;}
+
+  .hint{position:absolute;bottom:14px;left:20px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--text-faint);
+    background:rgba(16,14,10,0.72);padding:6px 11px;border-radius:7px;border:1px solid var(--border);backdrop-filter:blur(4px);z-index:6;}
+
+  .part-label{position:absolute;transform:translate(-50%,-100%);font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--amber);
+    background:rgba(16,14,10,0.9);border:1px solid var(--border-lit);padding:3px 7px;border-radius:5px;white-space:nowrap;pointer-events:none;transition:opacity .15s;}
+  .part-label::after{content:"";position:absolute;left:50%;top:100%;transform:translateX(-50%);border:4px solid transparent;border-top-color:var(--border-lit);}
+
+  #sidepanel{width:330px;min-width:330px;background:linear-gradient(180deg, var(--panel), var(--bg-deep));
+    border-left:1px solid var(--border);overflow-y:auto;padding:18px 16px 44px;}
+  #sidepanel::-webkit-scrollbar{width:8px;}
+  #sidepanel::-webkit-scrollbar-thumb{background:#242019;border-radius:6px;}
+
+  .panel-card{background:var(--panel2);border:1px solid var(--border);border-radius:11px;padding:15px 16px;margin-bottom:13px;box-shadow:0 4px 14px rgba(0,0,0,0.22);}
+  .panel-card h3{margin:0 0 13px;font-family:'Inter';font-weight:600;font-size:13px;letter-spacing:-0.01em;color:var(--text);text-transform:none;display:flex;align-items:center;gap:0;}
+  .panel-card h3::before{content:none;}
+
+  .method-select{display:flex;flex-direction:column;gap:6px;}
+  .method-opt{display:flex;align-items:center;gap:11px;padding:10px 11px;border-radius:8px;border:1px solid var(--border);cursor:pointer;transition:border-color .15s,background .15s;background:rgba(255,255,255,0.008);}
+  .method-opt:hover{border-color:var(--border-lit);}
+  .method-opt.active{border-color:var(--olive2);background:var(--olive-soft);}
+  .method-opt .dot{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--text-faint);flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+  .method-opt.active .dot{border-color:var(--olive);}
+  .method-opt.active .dot::after{content:"";width:7px;height:7px;border-radius:50%;background:var(--olive);}
+  .method-opt .mtxt .m1{font-family:'Inter';font-size:12.5px;font-weight:500;color:var(--text);}
+  .method-opt .mtxt .m2{font-family:'Inter';font-size:11px;color:var(--text-faint);margin-top:1px;}
+
+  .slider-row{margin-bottom:15px;}
+  .slider-row:last-child{margin-bottom:0;}
+  .slider-label{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px;}
+  .slider-label .sl-name{font-family:'Inter';font-size:12.5px;color:var(--text-dim);}
+  .slider-label .sl-val{font-size:13px;color:var(--amber);font-weight:500;}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:2px;
+    background:linear-gradient(90deg, var(--olive2) var(--fill,50%), #1d1a14 var(--fill,50%));outline:none;cursor:pointer;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:#e6e1d3;border:1px solid #b3ab93;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,0.45);transition:transform .12s;}
+  input[type=range]:active::-webkit-slider-thumb{transform:scale(1.18);}
+  input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:#e6e1d3;border:1px solid #b3ab93;cursor:pointer;}
+  input[type=range]:disabled{opacity:0.35;}
+
+  .pole-select{display:flex;gap:6px;}
+  .pole-btn{flex:1;padding:9px 0;text-align:center;border:1px solid var(--border);border-radius:7px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text-dim);cursor:pointer;background:rgba(255,255,255,0.01);transition:all .15s;}
+  .pole-btn.active{border-color:var(--amber2);color:var(--amber);background:var(--amber-soft);}
+
+  .btn-row{display:flex;gap:9px;margin-top:4px;}
+  .btn{flex:1;padding:12px 0;border-radius:9px;border:1px solid var(--border-lit);cursor:pointer;font-family:'Inter';font-weight:600;font-size:13px;letter-spacing:0;text-transform:none;transition:all .15s;background:var(--panel-hi);color:var(--text-dim);}
+  .btn-start{border-color:rgba(147,161,88,0.35);color:var(--ok);}
+  .btn-start:hover{background:var(--olive-soft);}
+  .btn-start.running{background:var(--olive-soft);color:var(--ok);border-color:var(--olive2);}
+  .btn-stop{border-color:rgba(207,91,69,0.3);color:var(--red);}
+  .btn-stop:hover{background:var(--red-soft);}
+
+  .gauge-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;}
+  .gauge{text-align:center;}
+  .gauge svg{width:100%;height:auto;}
+  .gauge-name{font-family:'Inter';font-size:10px;color:var(--text-faint);letter-spacing:0;margin-top:3px;text-transform:none;}
+  .gauge-read{font-size:15px;color:var(--text);font-weight:600;margin-top:1px;}
+  .gauge-unit{font-size:10px;color:var(--text-faint);font-weight:400;}
+
+  .readout-strip{display:flex;justify-content:space-between;padding:8px 2px;border-bottom:1px solid rgba(42,39,31,0.7);}
+  .readout-strip:last-child{border-bottom:none;}
+  .readout-strip .rn{font-family:'Inter';font-size:12.5px;color:var(--text-dim);}
+  .readout-strip .rv{font-size:13px;color:var(--amber);font-weight:500;}
+
+  .mini-note{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text-faint);line-height:1.65;margin-top:9px;padding-top:9px;border-top:1px solid rgba(42,39,31,0.7);}
+
+  #anatomy-panel .infoblock{margin-bottom:16px;}
+  #anatomy-panel .infoblock h4{font-family:'Inter';font-weight:600;font-size:13px;color:var(--amber);margin:0 0 5px;letter-spacing:0;display:flex;align-items:center;gap:8px;text-transform:none;}
+  #anatomy-panel .infoblock h4 .ic{width:8px;height:8px;border-radius:2px;background:var(--olive);display:inline-block;}
+  #anatomy-panel .infoblock p{font-family:'Inter';font-size:12.5px;line-height:1.65;color:var(--text-dim);margin:0;}
+  #anatomy-panel .infoblock .formula{font-size:11.5px;color:var(--amber);background:var(--amber-soft);border:1px solid rgba(210,162,74,0.25);padding:6px 9px;border-radius:6px;margin-top:6px;display:inline-block;}
+
+  .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(42,39,31,0.7);}
+  .toggle-row:last-child{border:none;}
+  .toggle-row .tn{font-family:'Inter';font-size:12.5px;color:var(--text-dim);}
+  .switch{width:40px;height:22px;border-radius:12px;background:#1d1a14;border:1px solid var(--border-lit);position:relative;cursor:pointer;flex-shrink:0;transition:all .18s;}
+  .switch .knob{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--text-faint);transition:all .18s;}
+  .switch.on{background:var(--olive-soft);border-color:var(--olive2);}
+  .switch.on .knob{left:20px;background:var(--olive);}
+
+  .part-nav{display:flex;flex-wrap:wrap;gap:6px;}
+  .part-chip{padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--text-dim);cursor:pointer;background:rgba(255,255,255,0.01);transition:all .15s;}
+  .part-chip.active{border-color:var(--olive2);color:var(--olive);background:var(--olive-soft);}
+
+  #loading{position:fixed;inset:0;z-index:200;background:var(--bg);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;transition:opacity .4s;}
+  #loading .spin{width:40px;height:40px;border:2px solid #1d1a14;border-top-color:var(--amber);border-radius:50%;animation:spin 0.9s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  #loading .lt{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-faint);letter-spacing:1px;}
+
+  @media (max-width:900px){
+    #sidepanel{position:fixed;right:0;top:58px;bottom:0;transform:translateX(100%);transition:transform .25s;box-shadow:-14px 0 40px rgba(0,0,0,0.6);}
+    #sidepanel.open{transform:translateX(0);}
+    #panel-toggle{display:flex !important;}
+  }
+  #panel-toggle{display:none;position:absolute;top:14px;right:14px;z-index:40;width:40px;height:40px;border-radius:9px;background:var(--panel-hi);border:1px solid var(--border-lit);color:var(--amber);align-items:center;justify-content:center;font-size:18px;cursor:pointer;}
+
+</style>
+</head>
+<body>
+
+<div id="loading"><div class="spin"></div><div class="lt">Initialising test bench…</div></div>
 
 <div class="grid-bg"></div>
 
@@ -257,22 +241,22 @@
   <div class="brand">
     <div class="brand-mark">3φ</div>
     <div class="brand-text">
-      <div class="t1">SLIP-RING INDUCTION MOTOR</div>
-      <div class="t2">SPEED CONTROL &amp; CONSTRUCTION SIMULATOR</div>
+      <div class="t1">Slip-ring induction motor</div>
+      <div class="t2">Speed control & construction</div>
     </div>
   </div>
   <div class="tabs">
     <button class="tab-btn active" data-view="bench">Test Bench</button>
     <button class="tab-btn" data-view="anatomy">Motor Anatomy</button>
   </div>
-  <div class="status-chip" id="statusChip"><div class="status-dot"></div><span id="statusText">STOPPED</span></div>
+  <div class="status-chip" id="statusChip"><div class="status-dot"></div><span id="statusText">Stopped</span></div>
 </div>
 
 <div id="app">
   <div id="viewport">
     <button id="panel-toggle">☰</button>
     <div class="view-label" id="viewLabel">01 — LIVE SIMULATION</div>
-    <div class="view-title" id="viewTitle">Electrical Machines Lab · Bay 24</div>
+    <div class="view-title" id="viewTitle">Electrical machines lab · Bay 24</div>
     <div id="labels-layer"></div>
     <div class="hint" id="viewHint">drag to orbit · scroll to zoom · right-drag to pan</div>
   </div>
@@ -452,7 +436,7 @@
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>
 <script>
 window.addEventListener('load', () => { try { initApp(); } catch(e){ document.getElementById('loading').innerHTML = '<div style="color:#ff6a4a;font-family:JetBrains Mono;font-size:12px;max-width:400px;text-align:center;">Failed to initialize 3D engine:<br>'+e.message+'</div>'; console.error(e); } });
 
@@ -570,15 +554,15 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.15;
+renderer.toneMappingExposure = 1.0;
 viewport.appendChild(renderer.domElement);
 
 const sceneBench = new THREE.Scene();
-sceneBench.fog = new THREE.FogExp2(0xeef1f5, 0.014);
-sceneBench.background = new THREE.Color(0xeef1f5);
+sceneBench.fog = new THREE.FogExp2(0x100f0c, 0.014);
+sceneBench.background = new THREE.Color(0x100f0c);
 const sceneAnatomy = new THREE.Scene();
-sceneAnatomy.fog = new THREE.FogExp2(0xeef1f5, 0.011);
-sceneAnatomy.background = new THREE.Color(0xeef1f5);
+sceneAnatomy.fog = new THREE.FogExp2(0x100f0c, 0.011);
+sceneAnatomy.background = new THREE.Color(0x100f0c);
 
 const camera = new THREE.PerspectiveCamera(42, viewport.clientWidth/viewport.clientHeight, 0.1, 500);
 
@@ -633,62 +617,63 @@ window.addEventListener('resize', ()=>{
 
 /* --- shared materials --- */
 const MAT = {
-  motorGreen: new THREE.MeshPhysicalMaterial({color:0x6fa03a, roughness:0.38, metalness:0.35, clearcoat:0.55, clearcoatRoughness:0.28}),
-  steelGrey: new THREE.MeshPhysicalMaterial({color:0x8a97a8, roughness:0.32, metalness:0.75, clearcoat:0.2, clearcoatRoughness:0.4}),
-  darkSteel: new THREE.MeshPhysicalMaterial({color:0x333f4d, roughness:0.4, metalness:0.65, clearcoat:0.3, clearcoatRoughness:0.35}),
-  panelWhite: new THREE.MeshStandardMaterial({color:0xe9edf2, roughness:0.5, metalness:0.1}),
-  panelBoard: new THREE.MeshStandardMaterial({color:0x3a2a2a, roughness:0.6}),
-  copper: new THREE.MeshPhysicalMaterial({color:0xc9814a, roughness:0.28, metalness:0.85, clearcoat:0.4}),
-  copperWind: new THREE.MeshPhysicalMaterial({color:0xdb8a4a, roughness:0.25, metalness:0.75, clearcoat:0.5, emissive:0x502400, emissiveIntensity:0.05}),
-  redPipe: new THREE.MeshPhysicalMaterial({color:0xb63a24, roughness:0.32, metalness:0.4, clearcoat:0.7, clearcoatRoughness:0.2}),
-  yellowValve: new THREE.MeshPhysicalMaterial({color:0xdb9d1f, roughness:0.35, metalness:0.35, clearcoat:0.6, clearcoatRoughness:0.25}),
-  black: new THREE.MeshPhysicalMaterial({color:0x141a22, roughness:0.45, metalness:0.4, clearcoat:0.4}),
-  greenRing: new THREE.MeshPhysicalMaterial({color:0x2fae5e, roughness:0.3, metalness:0.4, clearcoat:0.6, emissive:0x0a3016, emissiveIntensity:0.15}),
-  concrete: new THREE.MeshStandardMaterial({color:0x5a6472, roughness:0.92}),
-  floor: new THREE.MeshStandardMaterial({color:0xe4e9ef, roughness:0.92}),
-  glass: new THREE.MeshStandardMaterial({color:0xcfe8ff, roughness:0.15, metalness:0.1, transparent:true, opacity:0.35}),
-  laminationSteel: new THREE.MeshPhysicalMaterial({color:0x9aa4b2, roughness:0.3, metalness:0.8, clearcoat:0.15}),
-  shaftSteel: new THREE.MeshPhysicalMaterial({color:0xcdd3da, roughness:0.18, metalness:0.9, clearcoat:0.3}),
-  slipRing: new THREE.MeshPhysicalMaterial({color:0xd7a94a, roughness:0.2, metalness:0.9, clearcoat:0.3}),
-  brushCarbon: new THREE.MeshStandardMaterial({color:0x1c1c1c, roughness:0.6}),
-  emissiveAmber: new THREE.MeshBasicMaterial({color:0xffcf5c}),
-  emissiveTeal: new THREE.MeshBasicMaterial({color:0x3fb8ac}),
-  emissiveRed: new THREE.MeshBasicMaterial({color:0xff6a4a}),
+  motorGreen: new THREE.MeshStandardMaterial({color:0x44532f, roughness:0.5, metalness:0.35, envMapIntensity:0.7}),
+  steelGrey: new THREE.MeshStandardMaterial({color:0x8a94a0, roughness:0.32, metalness:0.85, envMapIntensity:0.9}),
+  darkSteel: new THREE.MeshStandardMaterial({color:0x2a2a26, roughness:0.45, metalness:0.6, envMapIntensity:0.6}),
+  panelWhite: new THREE.MeshStandardMaterial({color:0x2c2b25, roughness:0.6, metalness:0.2, envMapIntensity:0.4}),
+  panelBoard: new THREE.MeshStandardMaterial({color:0x211f1a, roughness:0.7, metalness:0.2}),
+  copper: new THREE.MeshStandardMaterial({color:0xb5793e, roughness:0.3, metalness:0.85, envMapIntensity:0.8}),
+  copperWind: new THREE.MeshStandardMaterial({color:0xc08a45, roughness:0.28, metalness:0.8, envMapIntensity:0.8}),
+  redPipe: new THREE.MeshStandardMaterial({color:0x9a4632, roughness:0.4, metalness:0.4, envMapIntensity:0.5}),
+  yellowValve: new THREE.MeshStandardMaterial({color:0xbf9436, roughness:0.4, metalness:0.4, envMapIntensity:0.5}),
+  black: new THREE.MeshStandardMaterial({color:0x15140f, roughness:0.5, metalness:0.4}),
+  greenRing: new THREE.MeshStandardMaterial({color:0x3f5a34, roughness:0.4, metalness:0.4, envMapIntensity:0.5}),
+  concrete: new THREE.MeshStandardMaterial({color:0x2a2822, roughness:0.95, metalness:0.05}),
+  floor: new THREE.MeshStandardMaterial({color:0x0e0d0a, roughness:0.98, metalness:0.05, envMapIntensity:0.2}),
+  glass: new THREE.MeshStandardMaterial({color:0x3a4a55, roughness:0.15, metalness:0.1, transparent:true, opacity:0.3}),
+  laminationSteel: new THREE.MeshStandardMaterial({color:0x9aa0a8, roughness:0.3, metalness:0.82, envMapIntensity:0.9}),
+  shaftSteel: new THREE.MeshStandardMaterial({color:0xc2c6cc, roughness:0.16, metalness:0.95, envMapIntensity:1.0}),
+  slipRing: new THREE.MeshStandardMaterial({color:0xc6a24e, roughness:0.22, metalness:0.9, envMapIntensity:0.9}),
+  brushCarbon: new THREE.MeshStandardMaterial({color:0x181613, roughness:0.6}),
+  emissiveAmber: new THREE.MeshStandardMaterial({color:0xcaa24a, roughness:0.5, metalness:0.3, emissive:0x2a1e08, emissiveIntensity:0.35}),
+  emissiveTeal: new THREE.MeshStandardMaterial({color:0x5f9a90, roughness:0.5, metalness:0.3, emissive:0x10302c, emissiveIntensity:0.3}),
+  emissiveRed: new THREE.MeshStandardMaterial({color:0xb35540, roughness:0.5, metalness:0.3, emissive:0x2e0f0a, emissiveIntensity:0.3}),
 };
 
 /* ======================================================================
    LIGHTING (shared setup per scene)
    ====================================================================== */
 function addLighting(scene){
-  const hemi = new THREE.HemisphereLight(0xffffff, 0xcbd6e2, 0.85);
-  scene.add(hemi);
-  const key = new THREE.DirectionalLight(0xfff6e6, 1.25);
-  key.position.set(12,18,10);
-  key.castShadow = true;
+  scene.add(new THREE.HemisphereLight(0xc4c8d0, 0x0e0d0a, 0.35));
+  const key = new THREE.DirectionalLight(0xfff2df, 2.0);
+  key.position.set(12,18,10); key.castShadow = true;
   key.shadow.mapSize.set(2048,2048);
   key.shadow.camera.left=-25; key.shadow.camera.right=25; key.shadow.camera.top=25; key.shadow.camera.bottom=-25;
-  key.shadow.camera.far=60;
-  key.shadow.bias=-0.0006;
+  key.shadow.camera.far=60; key.shadow.bias=-0.0005; key.shadow.radius=4;
   scene.add(key);
-  const fill = new THREE.DirectionalLight(0xdce8f7, 0.55);
-  fill.position.set(-14,8,-10);
-  scene.add(fill);
-  const rim = new THREE.PointLight(0xe0a72e, 0.35, 40);
-  rim.position.set(0,6,-14);
-  scene.add(rim);
-  const amb = new THREE.AmbientLight(0xffffff, 0.28);
-  scene.add(amb);
+  const fill = new THREE.DirectionalLight(0xb9c2d0, 0.45); fill.position.set(-14,8,-10); scene.add(fill);
 }
 addLighting(sceneBench);
 addLighting(sceneAnatomy);
+
+const __motorEnv = (function(){
+  const c=document.createElement('canvas'); c.width=1024;c.height=512; const x=c.getContext('2d');
+  const g=x.createLinearGradient(0,0,0,512); g.addColorStop(0,'#2a2820');g.addColorStop(0.46,'#15130e');g.addColorStop(0.54,'#100e0a');g.addColorStop(1,'#070604');
+  x.fillStyle=g; x.fillRect(0,0,1024,512);
+  function soft(cx,cy,r,a){ const rg=x.createRadialGradient(cx,cy,0,cx,cy,r); rg.addColorStop(0,'rgba(220,214,190,'+a+')'); rg.addColorStop(1,'rgba(220,214,190,0)'); x.fillStyle=rg; x.fillRect(cx-r,cy-r,r*2,r*2); }
+  soft(250,150,150,0.5); soft(720,120,120,0.28); soft(520,360,260,0.1);
+  const tex=new THREE.CanvasTexture(c); tex.mapping=THREE.EquirectangularReflectionMapping;
+  try{ const pm=new THREE.PMREMGenerator(renderer); pm.compileEquirectangularShader(); const rt=pm.fromEquirectangular(tex); tex.dispose(); pm.dispose(); return rt.texture; }catch(e){ return tex; }
+})();
+sceneBench.environment=__motorEnv; sceneAnatomy.environment=__motorEnv;
 
 function addFloor(scene, size){
   const floor = new THREE.Mesh(new THREE.CylinderGeometry(size,size,0.3,64), MAT.floor);
   floor.position.y=-0.15; floor.receiveShadow=true;
   scene.add(floor);
-  const grid = new THREE.GridHelper(size*2, 40, 0xb7c3d1, 0xd9dfe7);
+  const grid = new THREE.GridHelper(size*2, 40, 0x2a2a24, 0x1a1914);
   grid.position.y=0.01;
-  grid.material.opacity=0.55; grid.material.transparent=true;
+  grid.material.opacity=0.4; grid.material.transparent=true;
   scene.add(grid);
 }
 addFloor(sceneBench, 24);
@@ -1283,13 +1268,13 @@ $('startBtn').addEventListener('click', ()=>{
   state.running=true;
   $('startBtn').classList.add('running');
   $('statusChip').classList.add('on');
-  $('statusText').textContent='RUNNING';
+  $('statusText').textContent='Running';
 });
 $('stopBtn').addEventListener('click', ()=>{
   state.running=false;
   $('startBtn').classList.remove('running');
   $('statusChip').classList.remove('on');
-  $('statusText').textContent='STOPPED';
+  $('statusText').textContent='Stopped';
 });
 
 // anatomy controls
@@ -1494,6 +1479,1412 @@ document.getElementById('loading').style.opacity='0';
 setTimeout(()=>document.getElementById('loading').remove(),450);
 
 } // initApp
+<\/script>
+<script>window.addEventListener('load',function(){setTimeout(function(){var h=document.querySelector('.hint');if(h){h.style.transition='opacity .6s';h.style.opacity='0';h.style.pointerEvents='none';}},6000);});<\/script>
+</body>
+</html>
+</script>
+<script type="text/html" id="tpl-alt"><!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Alternator on Infinite Bus — Synchronising Panel</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0e13;
+    --bg-2:#0d1017;
+    --surface:rgba(20,25,33,0.72);
+    --surface-solid:#141922;
+    --surface-2:rgba(16,21,29,0.78);
+    --surface-hi:#1a212c;
+    --line:#222b37;
+    --line-2:#2a3543;
+    --txt:#c9d3e0;
+    --txt-2:#8896a8;
+    --txt-3:#5c697b;
+    --teal:#54b0a9;
+    --teal-2:#3f8a84;
+    --teal-soft:rgba(84,176,169,0.14);
+    --amber:#dda24e;
+    --amber-2:#c1852f;
+    --amber-soft:rgba(221,162,78,0.14);
+    --ok:#5fa88c;
+    --fault:#d5604f;
+    --fault-soft:rgba(213,96,79,0.14);
+    --bus:#7b93a8;
+    --shadow:0 10px 30px rgba(0,0,0,0.38);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--txt);
+    font-family:'Inter',system-ui,-apple-system,sans-serif;overflow:hidden;
+    font-size:14px;-webkit-font-smoothing:antialiased;}
+  .mono{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;}
+
+  .backdrop{position:fixed;inset:0;z-index:0;pointer-events:none;
+    background:
+      radial-gradient(1200px 700px at 60% 8%, rgba(38,52,66,0.35), transparent 60%),
+      radial-gradient(900px 900px at 50% 120%, rgba(0,0,0,0.55), transparent 55%);}
+
+  /* ===== top bar ===== */
+  #topbar{position:fixed;top:0;left:0;right:0;height:58px;z-index:50;
+    display:flex;align-items:center;justify-content:space-between;padding:0 20px;
+    background:linear-gradient(180deg, rgba(13,16,23,0.94), rgba(13,16,23,0.72));
+    border-bottom:1px solid var(--line);backdrop-filter:blur(10px);}
+  .brand{display:flex;align-items:center;gap:12px;}
+  .brand-mark{width:30px;height:30px;border-radius:7px;background:var(--surface-hi);
+    border:1px solid var(--line-2);display:flex;align-items:center;justify-content:center;position:relative;}
+  .brand-mark svg{width:17px;height:17px;}
+  .brand-text .t1{font-weight:600;font-size:14px;letter-spacing:-0.01em;line-height:1.1;color:var(--txt);}
+  .brand-text .t2{font-size:11px;color:var(--txt-3);margin-top:1px;}
+  .topbar-mid{display:flex;align-items:center;gap:10px;}
+  .exp-tag{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--txt-2);
+    border:1px solid var(--line);border-radius:6px;padding:4px 10px;background:rgba(0,0,0,0.15);}
+
+  .status-pill{display:flex;align-items:center;gap:8px;padding:6px 13px;border-radius:8px;
+    border:1px solid var(--line);background:rgba(0,0,0,0.18);font-size:12.5px;font-weight:500;color:var(--txt-2);
+    transition:color .25s, border-color .25s, background .25s;}
+  .status-pill .dot{width:7px;height:7px;border-radius:50%;background:#4a5566;transition:background .25s, box-shadow .25s;}
+  .status-pill[data-s="ready"]{color:var(--amber);border-color:rgba(221,162,78,0.35);background:var(--amber-soft);}
+  .status-pill[data-s="ready"] .dot{background:var(--amber);}
+  .status-pill[data-s="synced"]{color:var(--teal);border-color:rgba(84,176,169,0.35);background:var(--teal-soft);}
+  .status-pill[data-s="synced"] .dot{background:var(--teal);box-shadow:0 0 0 3px rgba(84,176,169,0.12);}
+  .status-pill[data-s="trip"]{color:var(--fault);border-color:rgba(213,96,79,0.4);background:var(--fault-soft);}
+  .status-pill[data-s="trip"] .dot{background:var(--fault);}
+
+  /* ===== layout ===== */
+  #app{position:fixed;top:58px;left:0;right:0;bottom:0;z-index:1;display:flex;}
+  #viewport{flex:1;position:relative;min-width:0;}
+  canvas#three{display:block;}
+  .stage-fade{position:absolute;inset:0;pointer-events:none;
+    box-shadow:inset 0 0 160px rgba(0,0,0,0.55);}
+
+  /* ===== instrument cluster ===== */
+  #cluster{position:absolute;top:18px;left:18px;z-index:10;width:288px;
+    background:var(--surface);border:1px solid var(--line);border-radius:12px;
+    box-shadow:var(--shadow);backdrop-filter:blur(9px);overflow:hidden;}
+  .cluster-head{display:flex;align-items:center;justify-content:space-between;
+    padding:11px 14px;border-bottom:1px solid var(--line);}
+  .cluster-head .ttl{font-size:12.5px;font-weight:600;color:var(--txt);}
+  .cluster-head .sub{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--txt-3);}
+  .cluster-body{padding:14px;}
+
+  .instr-row{display:flex;gap:14px;align-items:center;}
+  #synchroscope svg{width:132px;height:132px;display:block;}
+  .sc-face{fill:#0a0d12;stroke:#1f2733;stroke-width:1;}
+  #scPointer{stroke:var(--amber);stroke-width:2.2;stroke-linecap:round;transition:stroke .25s;}
+  #scPointer.good{stroke:var(--amber);}
+  .sc-lbl{font-family:'Inter';font-size:8.5px;fill:var(--txt-3);font-weight:500;}
+  #scReadout{font-family:'IBM Plex Mono',monospace;font-size:11px;fill:var(--txt);text-anchor:middle;font-weight:500;}
+  #scState{font-family:'Inter';font-size:9px;text-anchor:middle;fill:var(--txt-3);font-weight:500;}
+  #scRefMark{fill:#2a3543;transition:fill .25s;}
+  #scRefMark.good{fill:var(--amber);}
+
+  .lamp-stack{display:flex;flex-direction:column;gap:9px;}
+  .lamp-line{display:flex;align-items:center;gap:9px;}
+  .lamp{width:26px;height:26px;border-radius:50%;background:#0a0d12;
+    border:1px solid #1e2733;position:relative;overflow:hidden;flex-shrink:0;
+    box-shadow:inset 0 1px 3px rgba(0,0,0,0.7);}
+  .lamp .fila{position:absolute;inset:0;border-radius:50%;
+    background:radial-gradient(circle at 50% 42%, #ffdfa0, #f0a83e 46%, transparent 70%);opacity:0;}
+  .lamp-tag{font-size:11px;color:var(--txt-2);}
+  .lamp-tag .mono{font-size:10px;color:var(--txt-3);}
+
+  .scope-wrap{margin-top:14px;}
+  .scope-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;}
+  .scope-head .lbl{font-size:11px;color:var(--txt-2);font-weight:500;}
+  .scope-head .rd{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--txt-3);}
+  #scopeCv{width:100%;height:96px;display:block;border-radius:7px;background:#080b0f;border:1px solid var(--line);}
+  .scope-legend{display:flex;gap:14px;margin-top:8px;font-size:10.5px;color:var(--txt-2);}
+  .scope-legend span{display:flex;align-items:center;gap:6px;}
+  .lg-dash{width:12px;height:2px;border-radius:2px;}
+
+  .view-hint{position:absolute;bottom:14px;left:18px;font-size:11px;color:var(--txt-3);
+    background:rgba(11,14,19,0.72);padding:6px 11px;border-radius:7px;border:1px solid var(--line);z-index:10;
+    backdrop-filter:blur(4px);transition:opacity .5s ease, transform .5s ease;}
+  .view-hint.hidden{opacity:0;transform:translateY(4px);pointer-events:none;}
+  #hintDot{position:absolute;bottom:14px;left:18px;z-index:10;width:30px;height:30px;border-radius:8px;
+    background:rgba(11,14,19,0.72);border:1px solid var(--line);color:var(--txt-3);
+    display:flex;align-items:center;justify-content:center;cursor:default;backdrop-filter:blur(4px);
+    opacity:0;pointer-events:none;transition:opacity .5s ease, color .2s, border-color .2s;}
+  #hintDot.show{opacity:1;pointer-events:auto;}
+  #hintDot:hover{color:var(--txt-2);border-color:var(--line-2);}
+
+  /* ===== side panel ===== */
+  #side{width:328px;min-width:328px;background:linear-gradient(180deg, var(--bg-2), var(--bg));
+    border-left:1px solid var(--line);overflow-y:auto;padding:18px 16px 44px;z-index:20;}
+  #side::-webkit-scrollbar{width:8px;}
+  #side::-webkit-scrollbar-thumb{background:#1e2733;border-radius:6px;}
+  #side::-webkit-scrollbar-thumb:hover{background:#2a3543;}
+
+  .card{background:var(--surface-2);border:1px solid var(--line);border-radius:11px;
+    padding:15px 16px;margin-bottom:13px;box-shadow:0 4px 14px rgba(0,0,0,0.2);}
+  .card h3{margin:0 0 14px;font-size:13px;font-weight:600;color:var(--txt);letter-spacing:-0.01em;}
+
+  .row{display:flex;justify-content:space-between;align-items:baseline;padding:8px 0;
+    border-bottom:1px solid rgba(34,43,55,0.6);}
+  .row:first-of-type{padding-top:2px;}
+  .row:last-child{border-bottom:none;padding-bottom:2px;}
+  .row .rn{font-size:12.5px;color:var(--txt-2);}
+  .row .rv{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--txt);font-weight:500;}
+  .row .rv.accent{color:var(--teal);}
+  .row .rv.bus{color:var(--bus);}
+  .row .rv.warn{color:var(--amber);}
+  .row .rv.ok{color:var(--ok);}
+  .row .rv.bad{color:var(--fault);}
+
+  .seg{display:flex;flex-direction:column;gap:6px;}
+  .seg-opt{display:flex;align-items:center;gap:11px;padding:10px 11px;border-radius:8px;
+    border:1px solid var(--line);cursor:pointer;transition:border-color .15s, background .15s;background:rgba(255,255,255,0.008);}
+  .seg-opt:hover{border-color:var(--line-2);background:rgba(255,255,255,0.02);}
+  .seg-opt.active{border-color:var(--teal-2);background:var(--teal-soft);}
+  .seg-opt .radio{width:15px;height:15px;border-radius:50%;border:1.5px solid var(--txt-3);flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;transition:border-color .15s;}
+  .seg-opt.active .radio{border-color:var(--teal);}
+  .seg-opt.active .radio::after{content:"";width:7px;height:7px;border-radius:50%;background:var(--teal);}
+  .seg-opt .m1{font-size:12.5px;font-weight:500;color:var(--txt);}
+  .seg-opt .m2{font-size:11px;color:var(--txt-3);margin-top:1px;}
+
+  .field{margin-bottom:16px;}
+  .field:last-child{margin-bottom:0;}
+  .field-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px;}
+  .field-top .fn{font-size:12.5px;color:var(--txt-2);}
+  .field-top .fv{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--txt);font-weight:500;}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:2px;
+    background:linear-gradient(90deg, var(--teal-2) var(--fill,50%), #1a222d var(--fill,50%));outline:none;cursor:pointer;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;
+    background:#e2e8f0;border:1px solid #aab6c6;cursor:pointer;transition:transform .12s;
+    box-shadow:0 1px 4px rgba(0,0,0,0.4);}
+  input[type=range]:active::-webkit-slider-thumb{transform:scale(1.18);}
+  input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:#e2e8f0;border:1px solid #aab6c6;cursor:pointer;}
+
+  .toggle-row{display:flex;align-items:center;justify-content:space-between;}
+  .toggle-row .tn{font-size:12.5px;color:var(--txt-2);}
+  .toggle-row .tn .sub{display:block;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--txt-3);margin-top:2px;}
+  .switch{width:40px;height:22px;border-radius:12px;background:#1a222d;border:1px solid var(--line-2);
+    position:relative;cursor:pointer;flex-shrink:0;transition:background .18s, border-color .18s;}
+  .switch .knob{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;
+    background:#8896a8;transition:left .18s, background .18s;}
+  .switch.on{background:var(--teal-soft);border-color:var(--teal-2);}
+  .switch.on .knob{left:20px;background:var(--teal);}
+  .switch.warn{background:var(--amber-soft);border-color:var(--amber-2);}
+  .switch.warn .knob{background:var(--amber);}
+
+  .checklist{display:flex;flex-direction:column;gap:2px;}
+  .check{display:flex;align-items:center;gap:11px;padding:7px 0;font-size:12.5px;color:var(--txt-2);
+    border-bottom:1px solid rgba(34,43,55,0.45);}
+  .check:last-child{border-bottom:none;}
+  .check .mk{width:17px;height:17px;border-radius:5px;border:1px solid var(--line-2);flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--txt-3);
+    background:rgba(0,0,0,0.2);transition:border-color .2s, color .2s, background .2s;}
+  .check.ok{color:var(--txt);}
+  .check.ok .mk{border-color:var(--teal-2);color:var(--teal);background:var(--teal-soft);}
+  .check.no .mk{border-color:var(--amber-2);color:var(--amber);background:var(--amber-soft);}
+  .check .val{margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--txt-3);}
+
+  .btn{width:100%;padding:13px 0;border-radius:9px;border:1px solid var(--line-2);cursor:pointer;
+    font-family:'Inter';font-weight:600;font-size:13.5px;color:var(--txt-2);
+    transition:border-color .15s, background .15s, color .15s;background:var(--surface-hi);}
+  .btn:hover{border-color:#354154;color:var(--txt);}
+  .btn.primary.armed{border-color:var(--amber-2);background:var(--amber-soft);color:var(--amber);}
+  .btn.danger{border-color:rgba(213,96,79,0.3);color:var(--fault);}
+  .btn.danger:hover{background:var(--fault-soft);border-color:rgba(213,96,79,0.5);}
+
+  .note{font-size:11.5px;color:var(--txt-3);line-height:1.65;margin-top:12px;padding-top:12px;
+    border-top:1px solid rgba(34,43,55,0.6);}
+  .note em{color:var(--txt-2);font-style:normal;}
+  .k{color:var(--teal);}
+
+  /* loading */
+  #loading{position:fixed;inset:0;z-index:200;background:var(--bg);display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:16px;transition:opacity .5s;}
+  .load-ring{width:38px;height:38px;border-radius:50%;border:2px solid #1a222d;border-top-color:var(--teal);
+    animation:spin 0.9s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  #loading .lt2{font-size:15px;font-weight:600;color:var(--txt);}
+  #loading .lt{font-size:12px;color:var(--txt-3);}
+
+  .flash-trip{animation:tripflash .45s 3;}
+  @keyframes tripflash{50%{background:var(--fault-soft);}}
+
+  #ptoggle{display:none;position:absolute;top:14px;right:14px;z-index:40;width:40px;height:40px;border-radius:9px;
+    background:var(--surface-solid);border:1px solid var(--line-2);color:var(--txt);align-items:center;justify-content:center;font-size:18px;cursor:pointer;}
+  @media (max-width:960px){
+    #side{position:fixed;right:0;top:58px;bottom:0;transform:translateX(100%);transition:transform .25s;box-shadow:-14px 0 40px rgba(0,0,0,0.55);}
+    #side.open{transform:translateX(0);}
+    #ptoggle{display:flex;}
+    #cluster{width:250px;transform:scale(.92);transform-origin:top left;}
+  }
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="load-ring"></div>
+  <div class="lt2">Alternator on Infinite Bus</div>
+  <div class="lt">Initialising machine model…</div>
+</div>
+
+<div class="backdrop"></div>
+
+<div id="topbar">
+  <div class="brand">
+    <div class="brand-mark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#54b0a9" stroke-width="1.6"><circle cx="12" cy="12" r="8"/><path d="M12 4v5" stroke-linecap="round"/></svg>
+    </div>
+    <div class="brand-text">
+      <div class="t1">Alternator on Infinite Bus</div>
+      <div class="t2">Synchronising &amp; loading panel</div>
+    </div>
+  </div>
+  <div class="topbar-mid">
+    <div class="exp-tag">Exp 03 · Synchronisation</div>
+    <div class="status-pill" id="statusChip" data-s="off"><span class="dot"></span><span id="statusText">Off bus</span></div>
+  </div>
+</div>
+
+<div id="app">
+  <div id="viewport">
+    <canvas id="three"></canvas>
+    <div class="stage-fade"></div>
+    <button id="ptoggle">☰</button>
+
+    <div id="cluster">
+      <div class="cluster-head">
+        <span class="ttl">Synchronising instruments</span>
+        <span class="sub" id="clusterSub">off bus</span>
+      </div>
+      <div class="cluster-body">
+        <div class="instr-row">
+          <div id="synchroscope">
+            <svg viewBox="0 0 132 132">
+              <circle class="sc-face" cx="66" cy="66" r="58"/>
+              <g id="scTicks"></g>
+              <path id="scRefMark" d="M66 9 l4 7 l-8 0 z"/>
+              <text class="sc-lbl" x="66" y="26" text-anchor="middle">In phase</text>
+              <text class="sc-lbl" x="17" y="70">Slow</text>
+              <text class="sc-lbl" x="103" y="70" text-anchor="end">Fast</text>
+              <line id="scPointer" x1="66" y1="66" x2="66" y2="18"/>
+              <circle cx="66" cy="66" r="4" fill="#151b24" stroke="#2a3543" stroke-width="1.4"/>
+              <text id="scReadout" x="66" y="104">Δf 0.00 Hz</text>
+              <text id="scState" x="66" y="117">drifting</text>
+            </svg>
+          </div>
+          <div class="lamp-stack">
+            <div class="lamp-line"><div class="lamp" id="l0"><div class="fila"></div></div><div class="lamp-tag">L1<span class="mono"> R</span></div></div>
+            <div class="lamp-line"><div class="lamp" id="l1"><div class="fila"></div></div><div class="lamp-tag">L2<span class="mono"> Y</span></div></div>
+            <div class="lamp-line"><div class="lamp" id="l2"><div class="fila"></div></div><div class="lamp-tag">L3<span class="mono"> B</span></div></div>
+          </div>
+        </div>
+
+        <div class="scope-wrap">
+          <div class="scope-head">
+            <span class="lbl">Waveform comparison</span>
+            <span class="rd" id="scopePhase">Δθ 0°</span>
+          </div>
+          <canvas id="scopeCv" width="520" height="192"></canvas>
+          <div class="scope-legend">
+            <span><i class="lg-dash" style="background:var(--bus)"></i>Infinite bus</span>
+            <span><i class="lg-dash" style="background:var(--amber)"></i>Alternator</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="view-hint" id="viewHint">Drag to orbit · scroll to zoom · right-drag to pan</div>
+    <button id="hintDot" title="Camera controls"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="8" y="3.5" width="8" height="17" rx="4"/><path d="M12 7v3.5" stroke-linecap="round"/></svg></button>
+  </div>
+
+  <!-- ================= SIDE PANEL ================= -->
+  <div id="side">
+
+    <!-- BEFORE SYNC -->
+    <div id="pane-sync">
+      <div class="card">
+        <h3>Infinite bus</h3>
+        <div class="row"><span class="rn">Bus voltage</span><span class="rv bus">415 V</span></div>
+        <div class="row"><span class="rn">Bus frequency</span><span class="rv bus">50.00 Hz</span></div>
+        <div class="row"><span class="rn">Phase sequence</span><span class="rv bus">R · Y · B</span></div>
+        <div class="note">The grid is an <span class="k">infinite bus</span> — its voltage and frequency hold constant. The incoming alternator is matched <em>to it</em>.</div>
+      </div>
+
+      <div class="card">
+        <h3>Synchronising method</h3>
+        <div class="seg" id="methodSeg">
+          <div class="seg-opt active" data-m="dark3"><div class="radio"></div><div><div class="m1">Three dark lamps</div><div class="m2">all three extinguish together at sync</div></div></div>
+          <div class="seg-opt" data-m="bright2"><div class="radio"></div><div><div class="m1">Two bright, one dark</div><div class="m2">dark lamp rotates — indicates fast / slow</div></div></div>
+          <div class="seg-opt" data-m="scope"><div class="radio"></div><div><div class="m1">Synchroscope</div><div class="m2">pointer to top, creeping slowly</div></div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Incoming alternator</h3>
+        <div class="field">
+          <div class="field-top"><span class="fn">Prime-mover speed → f<sub>alt</sub></span><span class="fv" id="fVal">50.00 Hz</span></div>
+          <input type="range" id="fSlider" min="48" max="52" value="50" step="0.01">
+        </div>
+        <div class="field">
+          <div class="field-top"><span class="fn">Field excitation → V<sub>alt</sub></span><span class="fv" id="eVal">415 V</span></div>
+          <input type="range" id="eSlider" min="380" max="450" value="415" step="1">
+        </div>
+        <div class="toggle-row">
+          <div class="tn">Phase sequence<span class="sub" id="seqTxt">R · Y · B — matched</span></div>
+          <div class="switch on" id="seqSwitch"><div class="knob"></div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Synchronising conditions</h3>
+        <div class="checklist" id="condList">
+          <div class="check" data-c="v"><div class="mk">–</div>Voltage match<span class="val" id="cVd"></span></div>
+          <div class="check" data-c="f"><div class="mk">–</div>Frequency match<span class="val" id="cFd"></span></div>
+          <div class="check" data-c="p"><div class="mk">–</div>Phase coincidence<span class="val" id="cPd"></span></div>
+          <div class="check" data-c="s"><div class="mk">–</div>Phase sequence correct</div>
+        </div>
+        <button class="btn primary" id="closeBtn" style="margin-top:15px;">Close breaker</button>
+        <div class="note">Close only when all four conditions are satisfied. Closing out of sync produces a heavy transient and trips the breaker.</div>
+      </div>
+    </div>
+
+    <!-- AFTER SYNC -->
+    <div id="pane-load" style="display:none;">
+      <div class="card">
+        <h3>On the bus</h3>
+        <div class="row"><span class="rn">Machine speed</span><span class="rv accent" id="ldSpeed">1500 RPM</span></div>
+        <div class="row"><span class="rn">Locked to bus</span><span class="rv bus">50.00 Hz</span></div>
+        <div class="note">Once paralleled, speed is <span class="k">held by the grid</span>. Throttle now sets <em>real power</em> delivered; excitation sets <em>reactive power</em>.</div>
+      </div>
+
+      <div class="card">
+        <h3>Governor / throttle</h3>
+        <div class="field">
+          <div class="field-top"><span class="fn">Mechanical power input</span><span class="fv" id="thVal">0 %</span></div>
+          <input type="range" id="thSlider" min="0" max="100" value="0" step="1">
+        </div>
+        <div class="row"><span class="rn">Real power P → grid</span><span class="rv accent" id="pOut">0.00 kW</span></div>
+        <div class="row"><span class="rn">Load angle δ</span><span class="rv" id="deltaOut">0.0°</span></div>
+      </div>
+
+      <div class="card">
+        <h3>Excitation</h3>
+        <div class="field">
+          <div class="field-top"><span class="fn">Field excitation → V<sub>alt</sub></span><span class="fv" id="e2Val">415 V</span></div>
+          <input type="range" id="e2Slider" min="380" max="450" value="415" step="1">
+        </div>
+        <div class="row"><span class="rn">Reactive power Q</span><span class="rv" id="qOut">0.0 kVAR</span></div>
+        <div class="row"><span class="rn">Excitation state</span><span class="rv" id="exState">Normal</span></div>
+      </div>
+
+      <div class="card">
+        <h3>Machine readings</h3>
+        <div class="row"><span class="rn">Armature current I<sub>a</sub></span><span class="rv" id="iaOut">0.0 A</span></div>
+        <div class="row"><span class="rn">Apparent power S</span><span class="rv" id="sOut">0.0 kVA</span></div>
+        <div class="row"><span class="rn">Power factor</span><span class="rv" id="pfOut">1.00</span></div>
+        <button class="btn danger" id="openBtn" style="margin-top:15px;">Open breaker · off bus</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>
+<script>
+window.addEventListener('load', () => {
+  try { boot(); }
+  catch(e){
+    document.getElementById('loading').innerHTML =
+      '<div style="color:#d5604f;font-family:Inter;font-size:13px;max-width:420px;text-align:center;line-height:1.6;">3D engine failed to start:<br>'+e.message+'</div>';
+    console.error(e);
+  }
+});
+
+function boot(){
+  const DEG = Math.PI/180;
+  const $ = id => document.getElementById(id);
+  const clamp = (v,a,b)=>Math.min(Math.max(v,a),b);
+
+  /* ---------------- state ---------------- */
+  const BUS = { V:415, f:50.00 };
+  const S = {
+    method:'dark3', seqCorrect:true,
+    fAlt:50.00, exc:415,
+    onBus:false, trip:false, tripTimer:0,
+    phi:0, throttle:0, excLoad:415,
+    delta:0, P:0, Q:0, Ia:0, Sapp:0, pf:1,
+    shaftAngle:0, breaker:0, scopeT:0,
+  };
+  const wrapPi = a => { a=(a+Math.PI)%(2*Math.PI); if(a<0)a+=2*Math.PI; return a-Math.PI; };
+
+  /* ---------------- physics ---------------- */
+  function condStates(){
+    const df = S.fAlt - BUS.f, dv = S.exc - BUS.V;
+    return {
+      df, dv,
+      vOk: Math.abs(dv) <= 6,
+      fOk: Math.abs(df) <= 0.20,
+      pOk: Math.cos(S.phi) > Math.cos(8*DEG),
+      sOk: S.seqCorrect,
+      ready(){ return this.vOk && this.fOk && this.pOk && this.sOk; }
+    };
+  }
+  function lampBrightness(angle){
+    const Va=S.exc, Vb=BUS.V;
+    const d2 = Va*Va + Vb*Vb - 2*Va*Vb*Math.cos(angle);
+    return clamp(d2/((Va+Vb)*(Va+Vb)) * 1.7, 0, 1);
+  }
+  function lampOffsets(){
+    if(S.method==='scope') return [0,0,0];
+    if(S.method==='dark3') return S.seqCorrect ? [0,0,0] : [0,120*DEG,240*DEG];
+    return S.seqCorrect ? [0,120*DEG,240*DEG] : [0,240*DEG,120*DEG];
+  }
+  function computeLoad(){
+    S.delta = (S.throttle/100) * 48*DEG;
+    S.P = 6.0 * Math.sin(S.delta);
+    S.Q = 0.075 * (S.excLoad - BUS.V);
+    S.Sapp = Math.hypot(S.P, S.Q);
+    S.Ia = S.Sapp>1e-4 ? (S.Sapp*1000)/(Math.sqrt(3)*BUS.V) : 0;
+    S.pf = S.Sapp>1e-4 ? S.P/S.Sapp : 1;
+  }
+
+  /* ================= THREE.JS ================= */
+  const canvas = $('three'), viewport = $('viewport');
+  const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.setSize(viewport.clientWidth, viewport.clientHeight);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.0;
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0b0e13);
+  scene.fog = new THREE.FogExp2(0x0b0e13, 0.020);
+
+  const camera = new THREE.PerspectiveCamera(40, viewport.clientWidth/viewport.clientHeight, 0.1, 400);
+
+  /* -------- procedural studio environment for PBR reflections -------- */
+  function buildEnv(){
+    const c=document.createElement('canvas'); c.width=1024; c.height=512;
+    const x=c.getContext('2d');
+    const g=x.createLinearGradient(0,0,0,512);
+    g.addColorStop(0.00,'#252c36'); g.addColorStop(0.46,'#12171e');
+    g.addColorStop(0.54,'#0d1218'); g.addColorStop(1.00,'#06080c');
+    x.fillStyle=g; x.fillRect(0,0,1024,512);
+    function soft(cx,cy,r,a){ const rg=x.createRadialGradient(cx,cy,0,cx,cy,r);
+      rg.addColorStop(0,'rgba(205,220,235,'+a+')'); rg.addColorStop(1,'rgba(205,220,235,0)');
+      x.fillStyle=rg; x.fillRect(cx-r,cy-r,r*2,r*2); }
+    soft(250,150,150,0.55); soft(720,120,120,0.30); soft(520,360,260,0.10);
+    const tex=new THREE.CanvasTexture(c); tex.mapping=THREE.EquirectangularReflectionMapping;
+    try{
+      const pmrem=new THREE.PMREMGenerator(renderer); pmrem.compileEquirectangularShader();
+      const rt=pmrem.fromEquirectangular(tex); tex.dispose(); pmrem.dispose();
+      return rt.texture;
+    }catch(e){ return tex; }
+  }
+  scene.environment = buildEnv();
+
+  // orbit
+  const orbit = { theta:0.86, phi:1.16, radius:23, minR:12, maxR:48, target:new THREE.Vector3(0.6,2.6,0) };
+  function applyOrbit(){
+    const o=orbit, p=o.target.clone();
+    p.x += o.radius*Math.sin(o.phi)*Math.sin(o.theta);
+    p.y += o.radius*Math.cos(o.phi);
+    p.z += o.radius*Math.sin(o.phi)*Math.cos(o.theta);
+    camera.position.copy(p); camera.lookAt(o.target);
+  }
+  applyOrbit();
+  let drag=false, mbtn=0, lx=0, ly=0;
+  canvas.addEventListener('pointerdown', e=>{drag=true;mbtn=e.button;lx=e.clientX;ly=e.clientY;canvas.setPointerCapture(e.pointerId);});
+  canvas.addEventListener('pointerup', ()=>drag=false);
+  canvas.addEventListener('pointerleave', ()=>drag=false);
+  canvas.addEventListener('pointermove', e=>{
+    if(!drag)return;
+    const dx=e.clientX-lx, dy=e.clientY-ly; lx=e.clientX; ly=e.clientY;
+    if(mbtn===2){ orbit.target.x -= dx*0.018*Math.cos(orbit.theta); orbit.target.z += dx*0.018*Math.sin(orbit.theta); orbit.target.y += dy*0.018; }
+    else { orbit.theta -= dx*0.006; orbit.phi = clamp(orbit.phi - dy*0.006, 0.28, Math.PI-0.34); }
+    applyOrbit();
+  });
+  canvas.addEventListener('contextmenu', e=>e.preventDefault());
+  canvas.addEventListener('wheel', e=>{ e.preventDefault(); orbit.radius = clamp(orbit.radius + e.deltaY*0.016, orbit.minR, orbit.maxR); applyOrbit(); }, {passive:false});
+  window.addEventListener('resize', ()=>{
+    camera.aspect = viewport.clientWidth/viewport.clientHeight; camera.updateProjectionMatrix();
+    renderer.setSize(viewport.clientWidth, viewport.clientHeight);
+  });
+
+  /* -------- lighting: soft studio -------- */
+  scene.add(new THREE.HemisphereLight(0x8ea6c0, 0x0a0d12, 0.35));
+  const key = new THREE.DirectionalLight(0xfff2e0, 2.1);
+  key.position.set(9,17,11); key.castShadow=true;
+  key.shadow.mapSize.set(2048,2048);
+  key.shadow.camera.left=-22;key.shadow.camera.right=22;key.shadow.camera.top=22;key.shadow.camera.bottom=-22;
+  key.shadow.camera.far=64;key.shadow.bias=-0.0005;key.shadow.radius=4;
+  scene.add(key);
+  const fill = new THREE.DirectionalLight(0x9fb6d0, 0.5); fill.position.set(-12,7,-9); scene.add(fill);
+  const rim = new THREE.DirectionalLight(0xcfe0f5, 0.35); rim.position.set(-6,9,-14); scene.add(rim);
+
+  /* -------- floor + soft contact shadow -------- */
+  const floor = new THREE.Mesh(new THREE.CylinderGeometry(46,46,0.5,64),
+    new THREE.MeshStandardMaterial({color:0x0a0d13, roughness:0.98, metalness:0.05, envMapIntensity:0.25}));
+  floor.position.y=-0.25; floor.receiveShadow=true; scene.add(floor);
+  const grid = new THREE.GridHelper(90, 60, 0x1a2431, 0x121924);
+  grid.position.y=0.015; grid.material.transparent=true; grid.material.opacity=0.42; scene.add(grid);
+
+  function contactShadow(x,z,r){
+    const cv=document.createElement('canvas'); cv.width=cv.height=256;
+    const g=cv.getContext('2d'); const rg=g.createRadialGradient(128,128,0,128,128,128);
+    rg.addColorStop(0,'rgba(0,0,0,0.55)'); rg.addColorStop(0.6,'rgba(0,0,0,0.28)'); rg.addColorStop(1,'rgba(0,0,0,0)');
+    g.fillStyle=rg; g.fillRect(0,0,256,256);
+    const t=new THREE.CanvasTexture(cv);
+    const m=new THREE.Mesh(new THREE.PlaneGeometry(r,r*0.62),
+      new THREE.MeshBasicMaterial({map:t, transparent:true, depthWrite:false}));
+    m.rotation.x=-Math.PI/2; m.position.set(x,0.03,z); scene.add(m);
+  }
+  contactShadow(-5.4,0.4,9); contactShadow(2.2,0.6,11);
+
+  /* -------- materials (PBR) -------- */
+  const M = {
+    steel: new THREE.MeshStandardMaterial({color:0x9aa6b4, roughness:0.28, metalness:0.9, envMapIntensity:0.9}),
+    machinedSteel: new THREE.MeshStandardMaterial({color:0xc2cad4, roughness:0.18, metalness:0.95, envMapIntensity:1.0}),
+    castPrime: new THREE.MeshStandardMaterial({color:0x2b3138, roughness:0.5, metalness:0.5, envMapIntensity:0.7}),
+    castAlt: new THREE.MeshStandardMaterial({color:0x30474a, roughness:0.44, metalness:0.48, envMapIntensity:0.7}),
+    darkMetal: new THREE.MeshStandardMaterial({color:0x232a33, roughness:0.5, metalness:0.55, envMapIntensity:0.6}),
+    bedMetal: new THREE.MeshStandardMaterial({color:0x171d25, roughness:0.62, metalness:0.4, envMapIntensity:0.5}),
+    copper: new THREE.MeshStandardMaterial({color:0xb0713c, roughness:0.32, metalness:0.85, envMapIntensity:0.8}),
+    insulator: new THREE.MeshStandardMaterial({color:0x0d1219, roughness:0.55, metalness:0.1, envMapIntensity:0.4}),
+    paintStripe: new THREE.MeshStandardMaterial({color:0x11151b, roughness:0.7, metalness:0.2}),
+    indTeal: new THREE.MeshStandardMaterial({color:0x54b0a9, emissive:0x1c5450, emissiveIntensity:1.0, roughness:0.4, metalness:0.2}),
+    indRed: new THREE.MeshStandardMaterial({color:0xd5604f, emissive:0x5c2019, emissiveIntensity:1.0, roughness:0.4, metalness:0.2}),
+  };
+  const phaseCol = [0xb1564a, 0xb59440, 0x5f7f9c]; // muted R Y B
+  const busMat = phaseCol.map(c=>new THREE.MeshStandardMaterial({color:c, roughness:0.42, metalness:0.6, envMapIntensity:0.6}));
+
+  /* -------- bedplate -------- */
+  const bed = new THREE.Mesh(new THREE.BoxGeometry(15.5,0.6,4.8), M.bedMetal);
+  bed.position.set(-1.4,0.3,0); bed.castShadow=true; bed.receiveShadow=true; scene.add(bed);
+  [[-6.4],[ -1.2],[3.6]].forEach(([bx])=>{
+    const rail=new THREE.Mesh(new THREE.BoxGeometry(1.2,0.22,4.8), M.darkMetal);
+    rail.position.set(bx,0.68,0); rail.castShadow=true; scene.add(rail);
+  });
+
+  /* -------- prime mover (DC drive) -------- */
+  const prime = new THREE.Group();
+  const pBody=new THREE.Mesh(new THREE.CylinderGeometry(1.55,1.55,3.4,44), M.castPrime);
+  pBody.rotation.z=Math.PI/2; pBody.castShadow=true; prime.add(pBody);
+  for(let i=0;i<12;i++){ const r=new THREE.Mesh(new THREE.TorusGeometry(1.58,0.045,8,44),M.castPrime); r.rotation.y=Math.PI/2; r.position.x=-1.55+i*0.28; r.castShadow=true; prime.add(r);}
+  [1.8,-1.8].forEach(px=>{ const bell=new THREE.Mesh(new THREE.CylinderGeometry(1.6,1.6,0.35,44),M.darkMetal); bell.rotation.z=Math.PI/2; bell.position.x=px; bell.castShadow=true; prime.add(bell);});
+  const brushBand=new THREE.Mesh(new THREE.CylinderGeometry(1.62,1.62,0.5,44),M.steel); brushBand.rotation.z=Math.PI/2; brushBand.position.x=1.45; prime.add(brushBand);
+  const pFeet=new THREE.Mesh(new THREE.BoxGeometry(3.0,0.35,3.4),M.darkMetal); pFeet.position.y=-1.5; pFeet.castShadow=true; prime.add(pFeet);
+  prime.position.set(-5.4, 2.35, 0); scene.add(prime);
+
+  /* -------- alternator -------- */
+  const alt = new THREE.Group();
+  const aBody=new THREE.Mesh(new THREE.CylinderGeometry(1.85,1.85,3.6,52), M.castAlt);
+  aBody.rotation.z=Math.PI/2; aBody.castShadow=true; alt.add(aBody);
+  for(let i=0;i<9;i++){ const r=new THREE.Mesh(new THREE.TorusGeometry(1.88,0.055,10,52),M.castAlt); r.rotation.y=Math.PI/2; r.position.x=-1.5+i*0.375; r.castShadow=true; alt.add(r);}
+  [1.95,-1.95].forEach(px=>{ const bell=new THREE.Mesh(new THREE.CylinderGeometry(1.95,1.95,0.32,52),M.darkMetal); bell.rotation.z=Math.PI/2; bell.position.x=px; bell.castShadow=true; alt.add(bell);
+    const brg=new THREE.Mesh(new THREE.CylinderGeometry(0.55,0.55,0.4,28),M.steel); brg.rotation.z=Math.PI/2; brg.position.x=px+ (px>0?0.12:-0.12); alt.add(brg);});
+  // terminal box + bushings
+  const tbox=new THREE.Mesh(new THREE.BoxGeometry(1.6,0.72,1.7),M.darkMetal); tbox.position.set(0.2,1.95,0); tbox.castShadow=true; alt.add(tbox);
+  const altTerm=[];
+  for(let i=0;i<3;i++){
+    const bx=-0.2+i*0.4;
+    const bush=new THREE.Mesh(new THREE.CylinderGeometry(0.11,0.15,0.6,18), M.insulator); bush.position.set(bx,2.5,0); alt.add(bush);
+    const cap=new THREE.Mesh(new THREE.SphereGeometry(0.13,16,16), busMat[i]); cap.position.set(bx,2.82,0); alt.add(cap);
+    altTerm.push(new THREE.Vector3(bx,2.82,0));
+  }
+  const aFeet=new THREE.Mesh(new THREE.BoxGeometry(3.5,0.35,4.0),M.darkMetal); aFeet.position.y=-1.78; aFeet.castShadow=true; alt.add(aFeet);
+  const plate=new THREE.Mesh(new THREE.BoxGeometry(0.04,0.55,0.95),M.steel); plate.position.set(1.87,-0.2,1.35); alt.add(plate);
+  alt.position.set(2.2, 2.65, 0); scene.add(alt);
+
+  /* -------- shaft + coupling (spins) -------- */
+  const shaftGrp = new THREE.Group();
+  const shaft=new THREE.Mesh(new THREE.CylinderGeometry(0.2,0.2,4.2,20), M.machinedSteel); shaft.rotation.z=Math.PI/2; shaft.castShadow=true; shaftGrp.add(shaft);
+  const coup=new THREE.Mesh(new THREE.CylinderGeometry(0.52,0.52,0.85,32), M.steel); coup.rotation.z=Math.PI/2; coup.castShadow=true; shaftGrp.add(coup);
+  // machined flats + a single matte reference line so rotation reads without glow
+  const refLine=new THREE.Mesh(new THREE.BoxGeometry(0.86,0.02,0.13), M.paintStripe); refLine.position.set(0,0.5,0); shaftGrp.add(refLine);
+  for(let i=0;i<6;i++){ const a=i/6*Math.PI*2; const bolt=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,0.9,6),M.darkMetal); bolt.rotation.z=Math.PI/2; bolt.position.set(0,Math.cos(a)*0.4,Math.sin(a)*0.4); shaftGrp.add(bolt);}
+  shaftGrp.position.set(-1.6, 2.65, 0); scene.add(shaftGrp);
+
+  /* -------- overhead bus bars -------- */
+  const busY=[7.5,6.85,6.2];
+  const busBars=[];
+  busY.forEach((y,i)=>{ const bar=new THREE.Mesh(new THREE.BoxGeometry(24,0.24,0.24), busMat[i]); bar.position.set(0,y,-2.4); bar.castShadow=true; scene.add(bar); busBars.push(bar);});
+  for(let x=-10;x<=10;x+=5){
+    const post=new THREE.Mesh(new THREE.CylinderGeometry(0.13,0.19,2.2,12),M.insulator); post.position.set(x, busY[2]-1.1, -2.4); scene.add(post);
+    const cap=new THREE.Mesh(new THREE.BoxGeometry(0.45,0.12,0.7),M.darkMetal); cap.position.set(x,busY[0]+0.2,-2.4); scene.add(cap);
+  }
+
+  // power-flow arrows (muted teal, appear when P>0)
+  const arrows=[];
+  for(let i=0;i<9;i++){
+    const cone=new THREE.Mesh(new THREE.ConeGeometry(0.13,0.42,12), new THREE.MeshStandardMaterial({color:0x54b0a9, emissive:0x1c4a47, emissiveIntensity:0.6, roughness:0.5, metalness:0.2}));
+    cone.rotation.z=-Math.PI/2; cone.position.set(-10+i*2.4, busY[1], -2.4); cone.visible=false; scene.add(cone); arrows.push(cone);
+  }
+
+  /* -------- circuit breaker -------- */
+  const cbGrp=new THREE.Group();
+  const cbBox=new THREE.Mesh(new THREE.BoxGeometry(1.5,2.1,1.3), M.darkMetal); cbBox.castShadow=true; cbGrp.add(cbBox);
+  const cbFace=new THREE.Mesh(new THREE.BoxGeometry(0.05,1.6,1.0), M.bedMetal); cbFace.position.x=0.76; cbGrp.add(cbFace);
+  for(let i=0;i<3;i++){ const c=new THREE.Mesh(new THREE.CylinderGeometry(0.075,0.075,0.5,12),M.copper); c.position.set(-0.42+i*0.42,-0.7,0.72); cbGrp.add(c);}
+  const blade=new THREE.Group();
+  for(let i=0;i<3;i++){ const c=new THREE.Mesh(new THREE.CylinderGeometry(0.085,0.085,0.7,12),M.copper); c.position.set(-0.42+i*0.42,0,0.72); blade.add(c);}
+  blade.position.y=0.95; cbGrp.add(blade);
+  const arc=new THREE.PointLight(0x54b0a9, 0, 3.5); arc.position.set(0,-0.4,0.9); cbGrp.add(arc);
+  const cbLamp=new THREE.Mesh(new THREE.SphereGeometry(0.15,18,18), M.indRed); cbLamp.position.set(0.4,1.35,0.72); cbGrp.add(cbLamp);
+  cbGrp.position.set(2.4, 5.15, 2.3); scene.add(cbGrp);
+
+  // cables
+  function cable(p0,p1,p2,color){
+    const g=new THREE.TubeGeometry(new THREE.CatmullRomCurve3([p0,p1,p2]),24,0.055,8,false);
+    return new THREE.Mesh(g,new THREE.MeshStandardMaterial({color,roughness:0.55,metalness:0.2,envMapIntensity:0.4}));
+  }
+  for(let i=0;i<3;i++){
+    const t=altTerm[i].clone().add(alt.position);
+    const cbTop=new THREE.Vector3(2.0+i*0.42-0.42, 6.55, 2.3);
+    scene.add(cable(t, new THREE.Vector3((t.x+cbTop.x)/2, t.y+1.7, (t.z+cbTop.z)/2), cbTop, phaseCol[i]));
+    const cbBot=new THREE.Vector3(2.0+i*0.42-0.42, 4.15, 2.3);
+    const busPt=new THREE.Vector3(2.0+i*0.42-0.42, busY[i], -2.35);
+    scene.add(cable(cbBot, new THREE.Vector3(cbBot.x,(cbBot.y+busY[i])/2,(cbBot.z+busPt.z)/2), busPt, phaseCol[i]));
+  }
+
+  /* ================= synchroscope ticks ================= */
+  (function(){
+    const g=$('scTicks'), cx=66,cy=66,r=58;
+    for(let i=0;i<24;i++){
+      const a=i/24*Math.PI*2, major=i%6===0, r0=major?r-8:r-4;
+      const l=document.createElementNS('http://www.w3.org/2000/svg','line');
+      l.setAttribute('x1',cx+r0*Math.sin(a)); l.setAttribute('y1',cy-r0*Math.cos(a));
+      l.setAttribute('x2',cx+r*Math.sin(a)); l.setAttribute('y2',cy-r*Math.cos(a));
+      l.setAttribute('stroke', major?'#33404f':'#1f2833'); l.setAttribute('stroke-width', major?1.4:0.9);
+      g.appendChild(l);
+    }
+  })();
+
+  /* ================= scope ================= */
+  const scv=$('scopeCv'), sctx=scv.getContext('2d');
+  function drawScope(){
+    const w=scv.width, h=scv.height, mid=h/2;
+    sctx.clearRect(0,0,w,h);
+    sctx.strokeStyle='rgba(30,40,52,0.55)'; sctx.lineWidth=1;
+    for(let x=0;x<=w;x+=w/8){ sctx.beginPath();sctx.moveTo(x,0);sctx.lineTo(x,h);sctx.stroke(); }
+    for(let y=0;y<=h;y+=h/4){ sctx.beginPath();sctx.moveTo(0,y);sctx.lineTo(w,y);sctx.stroke(); }
+    sctx.strokeStyle='rgba(45,58,72,0.8)'; sctx.beginPath();sctx.moveTo(0,mid);sctx.lineTo(w,mid);sctx.stroke();
+    const cycles=2.2, amp=h*0.36;
+    // bus reference
+    sctx.strokeStyle='#7b93a8'; sctx.lineWidth=1.5; sctx.beginPath();
+    for(let x=0;x<=w;x++){ const tt=x/w*cycles*2*Math.PI; const y=mid-amp*Math.sin(tt+S.scopeT); x===0?sctx.moveTo(x,y):sctx.lineTo(x,y);} sctx.stroke();
+    // alternator
+    const va=S.onBus?1:(S.exc/BUS.V), ph=S.onBus?0:S.phi;
+    sctx.strokeStyle='#dda24e'; sctx.lineWidth=1.6; sctx.beginPath();
+    for(let x=0;x<=w;x++){ const tt=x/w*cycles*2*Math.PI; const y=mid-amp*va*Math.sin(tt+S.scopeT+ph); x===0?sctx.moveTo(x,y):sctx.lineTo(x,y);} sctx.stroke();
+  }
+
+  /* ================= UI wiring ================= */
+  function setFill(el){ const p=(el.value-el.min)/(el.max-el.min)*100; el.style.setProperty('--fill',p+'%'); }
+
+  document.querySelectorAll('#methodSeg .seg-opt').forEach(o=>o.addEventListener('click',()=>{
+    document.querySelectorAll('#methodSeg .seg-opt').forEach(x=>x.classList.remove('active'));
+    o.classList.add('active'); S.method=o.dataset.m;
+  }));
+
+  const fSlider=$('fSlider'), eSlider=$('eSlider');
+  fSlider.addEventListener('input',()=>{ S.fAlt=+fSlider.value; $('fVal').textContent=S.fAlt.toFixed(2)+' Hz'; setFill(fSlider); });
+  eSlider.addEventListener('input',()=>{ S.exc=+eSlider.value; S.excLoad=+eSlider.value; $('eVal').textContent=S.exc+' V'; setFill(eSlider); });
+  [fSlider,eSlider].forEach(setFill);
+
+  const seqSwitch=$('seqSwitch');
+  seqSwitch.addEventListener('click',()=>{
+    S.seqCorrect=!S.seqCorrect;
+    seqSwitch.classList.toggle('on',S.seqCorrect); seqSwitch.classList.toggle('warn',!S.seqCorrect);
+    $('seqTxt').textContent = S.seqCorrect?'R · Y · B — matched':'R · B · Y — reversed';
+  });
+
+  $('closeBtn').addEventListener('click',()=>{ condStates().ready() ? synchronise() : doTrip(); });
+  $('openBtn').addEventListener('click', desync);
+
+  const thSlider=$('thSlider'), e2Slider=$('e2Slider');
+  thSlider.addEventListener('input',()=>{ S.throttle=+thSlider.value; $('thVal').textContent=S.throttle+' %'; setFill(thSlider); });
+  e2Slider.addEventListener('input',()=>{ S.excLoad=+e2Slider.value; $('e2Val').textContent=S.excLoad+' V'; setFill(e2Slider); });
+  [thSlider,e2Slider].forEach(setFill);
+
+  $('ptoggle').addEventListener('click',()=>$('side').classList.toggle('open'));
+
+  // controls hint — show briefly, then collapse to a small affordance that re-reveals on hover
+  const viewHint=$('viewHint'), hintDot=$('hintDot');
+  let hintDismissed=false;
+  function stowHint(){ if(hintDismissed) return; hintDismissed=true; viewHint.classList.add('hidden'); hintDot.classList.add('show'); }
+  const hintTimer=setTimeout(stowHint, 6000);
+  ['pointerdown','wheel'].forEach(ev=>canvas.addEventListener(ev, ()=>{ clearTimeout(hintTimer); stowHint(); }, {passive:true}));
+  hintDot.addEventListener('mouseenter', ()=>viewHint.classList.remove('hidden'));
+  hintDot.addEventListener('mouseleave', ()=>{ if(hintDismissed) viewHint.classList.add('hidden'); });
+
+  function synchronise(){
+    S.onBus=true; S.trip=false; S.phi=0;
+    $('pane-sync').style.display='none'; $('pane-load').style.display='block';
+    $('e2Slider').value=S.exc; S.excLoad=S.exc; $('e2Val').textContent=S.exc+' V'; setFill($('e2Slider'));
+    setStatus('synced','On bus — synchronised'); $('clusterSub').textContent='on bus';
+  }
+  function desync(){
+    S.onBus=false; S.throttle=0; S.delta=0;
+    $('thSlider').value=0; $('thVal').textContent='0 %'; setFill($('thSlider'));
+    $('pane-load').style.display='none'; $('pane-sync').style.display='block';
+    setStatus('off','Off bus'); $('clusterSub').textContent='off bus';
+  }
+  function doTrip(){
+    S.trip=true; S.tripTimer=1.6; setStatus('trip','Out of sync — breaker tripped');
+    document.body.classList.add('flash-trip'); setTimeout(()=>document.body.classList.remove('flash-trip'),1400);
+  }
+  function setStatus(s,txt){ $('statusChip').dataset.s=s; $('statusText').textContent=txt; }
+
+  /* ================= loop ================= */
+  const clock=new THREE.Clock();
+  const scP=$('scPointer'), scRead=$('scReadout'), scState=$('scState'), scRef=$('scRefMark');
+  const lampEls=[$('l0'),$('l1'),$('l2')], lampFila=lampEls.map(e=>e.querySelector('.fila'));
+
+  function frame(){
+    requestAnimationFrame(frame);
+    const dt=Math.min(clock.getDelta(),0.05), c=condStates();
+
+    if(!S.onBus && !S.trip){ S.phi=wrapPi(S.phi + 2*Math.PI*c.df*dt); }
+    if(S.trip){ S.tripTimer-=dt; S.phi=wrapPi(S.phi + 2*Math.PI*c.df*dt); if(S.tripTimer<=0){ S.trip=false; setStatus(c.ready()?'ready':'off', c.ready()?'Ready to close':'Off bus'); } }
+
+    S.scopeT += dt*3.2;
+    const targetRate = S.onBus ? 6.0 : (6.0*S.fAlt/50);
+    S.shaftAngle += targetRate*dt; shaftGrp.rotation.x=S.shaftAngle;
+
+    S.breaker += ((S.onBus?1:0)-S.breaker)*Math.min(1,dt*6);
+    blade.position.y = 0.95 - S.breaker*0.95;
+    const closed=S.breaker>0.6;
+    cbLamp.material = closed?M.indTeal:M.indRed;
+    arc.color.set(0x54b0a9); arc.intensity = closed?0.9:0;
+
+    if(S.onBus) computeLoad();
+    const showFlow=S.onBus && S.P>0.05, tt=performance.now()/1000;
+    arrows.forEach((a,i)=>{ a.visible=showFlow; if(showFlow){ a.position.x=-10+((i*2.4+tt*3.0)%22); const g=clamp(S.P/6,0.25,1); a.scale.setScalar(0.7+g*0.5);} });
+
+    // synchroscope
+    if(!S.onBus){
+      scP.setAttribute('transform',`rotate(${S.phi/DEG} 66 66)`);
+      const good=c.pOk && c.fOk;
+      scP.classList.toggle('good',good); scRef.classList.toggle('good', c.ready());
+      scRead.textContent='Δf '+c.df.toFixed(2)+' Hz';
+      scState.textContent = c.ready()?'ready':(Math.abs(c.df)<0.02?'creeping':(c.df>0?'running fast':'running slow'));
+      scState.setAttribute('fill', c.ready()?'#dda24e':'#5c697b');
+      $('scopePhase').textContent='Δθ '+Math.round(Math.abs(S.phi/DEG))+'°';
+    } else {
+      scP.setAttribute('transform','rotate(0 66 66)'); scP.classList.add('good'); scRef.classList.add('good');
+      scRead.textContent='locked'; scState.textContent='synchronous'; scState.setAttribute('fill','#54b0a9');
+      $('scopePhase').textContent='Δθ 0°';
+    }
+
+    // lamps
+    const offs=lampOffsets();
+    lampEls.forEach((el,i)=>{
+      let b = S.onBus?0 : (S.method==='scope'?0.05 : lampBrightness(wrapPi(S.phi+offs[i])));
+      lampFila[i].style.opacity=b.toFixed(3);
+      el.style.boxShadow = b>0.2 ? `inset 0 1px 3px rgba(0,0,0,0.5), 0 0 ${(b*10).toFixed(0)}px rgba(240,170,70,${(b*0.5).toFixed(2)})` : 'inset 0 1px 3px rgba(0,0,0,0.7)';
+    });
+
+    if(!S.onBus){
+      updateCond('v',c.vOk,(c.dv>=0?'+':'')+c.dv+' V');
+      updateCond('f',c.fOk,(c.df>=0?'+':'')+c.df.toFixed(2)+' Hz');
+      updateCond('p',c.pOk,Math.abs(S.phi/DEG).toFixed(0)+'°');
+      updateCond('s',c.sOk,'');
+      const armed=c.ready();
+      $('closeBtn').classList.toggle('primary',true); $('closeBtn').classList.toggle('armed',armed);
+      if(!S.trip) setStatus(armed?'ready':'off', armed?'Ready to close':'Off bus');
+      $('clusterSub').textContent = armed?'ready':'off bus';
+    } else {
+      $('pOut').textContent=S.P.toFixed(2)+' kW';
+      $('deltaOut').textContent=(S.delta/DEG).toFixed(1)+'°';
+      $('qOut').textContent=(S.Q>=0?'+':'')+S.Q.toFixed(1)+' kVAR';
+      $('qOut').className='rv '+(Math.abs(S.Q)<0.3?'ok':'warn');
+      $('exState').textContent = S.excLoad>422?'Over-excited':S.excLoad<408?'Under-excited':'Normal';
+      $('exState').className='rv '+(Math.abs(S.excLoad-415)<8?'ok':'warn');
+      $('iaOut').textContent=S.Ia.toFixed(1)+' A';
+      $('sOut').textContent=S.Sapp.toFixed(1)+' kVA';
+      $('pfOut').textContent=S.pf.toFixed(2)+(Math.abs(S.Q)<0.3?'':(S.Q>0?' lag':' lead'));
+    }
+
+    drawScope();
+    renderer.render(scene,camera);
+  }
+  function updateCond(key,ok,txt){
+    const el=document.querySelector(`.check[data-c="${key}"]`);
+    el.classList.toggle('ok',ok); el.classList.toggle('no',!ok);
+    el.querySelector('.mk').textContent = ok?'✓':'!';
+    const span={v:'cVd',f:'cFd',p:'cPd'}[key]; if(span) $(span).textContent=txt;
+  }
+
+  frame();
+  const ld=$('loading'); ld.style.opacity='0'; setTimeout(()=>ld.remove(),520);
+}
+<\/script>
+</body>
+</html>
+</script>
+<script type="text/html" id="tpl-zpf"><!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Alternator Regulation — ZPF (Potier) Method</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0d17; --bg-2:#0c1020;
+    --surface:rgba(18,22,38,0.74); --surface-2:rgba(15,18,32,0.80); --surface-hi:#1a1f33;
+    --line:#222a44; --line-2:#2d3760;
+    --txt:#ccd3e6; --txt-2:#8790b0; --txt-3:#5a6288;
+    --indigo:#7c8cf0; --indigo-2:#5f6fca; --indigo-soft:rgba(124,140,240,0.14);
+    --ochre:#d9a24e; --ochre-soft:rgba(217,162,78,0.13);
+    --ok:#5fb08f; --fault:#d56a86; --steel:#6d7ba0; --rose:#d07a9a;
+    --shadow:0 10px 30px rgba(0,0,0,0.42);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--txt);
+    font-family:'Inter',system-ui,-apple-system,sans-serif;overflow:hidden;font-size:14px;-webkit-font-smoothing:antialiased;}
+  .mono{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;}
+
+  .backdrop{position:fixed;inset:0;z-index:0;pointer-events:none;
+    background:
+      radial-gradient(1200px 700px at 62% 6%, rgba(46,52,92,0.34), transparent 60%),
+      radial-gradient(900px 900px at 50% 120%, rgba(0,0,0,0.55), transparent 55%);}
+
+  /* top bar */
+  #topbar{position:fixed;top:0;left:0;right:0;height:58px;z-index:50;display:flex;align-items:center;
+    justify-content:space-between;padding:0 20px;background:linear-gradient(180deg, rgba(12,15,28,0.94), rgba(12,15,28,0.72));
+    border-bottom:1px solid var(--line);backdrop-filter:blur(10px);}
+  .brand{display:flex;align-items:center;gap:12px;}
+  .brand-mark{width:30px;height:30px;border-radius:7px;background:var(--surface-hi);border:1px solid var(--line-2);
+    display:flex;align-items:center;justify-content:center;}
+  .brand-mark svg{width:17px;height:17px;}
+  .brand-text .t1{font-weight:600;font-size:14px;letter-spacing:-0.01em;line-height:1.1;color:var(--txt);}
+  .brand-text .t2{font-size:11px;color:var(--txt-3);margin-top:1px;}
+  .topbar-mid{display:flex;align-items:center;gap:10px;}
+  .exp-tag{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--txt-2);border:1px solid var(--line);
+    border-radius:6px;padding:4px 10px;background:rgba(0,0,0,0.15);}
+  .reg-pill{display:flex;align-items:center;gap:9px;padding:6px 13px;border-radius:8px;border:1px solid var(--line);
+    background:rgba(0,0,0,0.18);font-size:12.5px;font-weight:500;color:var(--txt-2);}
+  .reg-pill .lbl{color:var(--txt-3);}
+  .reg-pill .val{font-family:'IBM Plex Mono',monospace;font-weight:600;color:var(--indigo);}
+  .reg-pill .val.warn{color:var(--ochre);}
+  .reg-pill .val.good{color:var(--ok);}
+
+  #app{position:fixed;top:58px;left:0;right:0;bottom:0;z-index:1;display:flex;}
+  #viewport{flex:1;position:relative;min-width:0;}
+  canvas#three{display:block;}
+  .stage-fade{position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 160px rgba(0,0,0,0.5);}
+
+  /* analysis panel (hero) */
+  #analysis{position:absolute;top:18px;left:18px;z-index:10;width:452px;max-width:calc(100% - 36px);
+    background:var(--surface);border:1px solid var(--line);border-radius:13px;box-shadow:var(--shadow);
+    backdrop-filter:blur(9px);overflow:hidden;}
+  .an-head{display:flex;align-items:center;justify-content:space-between;padding:12px 15px;border-bottom:1px solid var(--line);}
+  .an-head .ttl{font-size:13px;font-weight:600;color:var(--txt);}
+  .an-head .sub{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--txt-3);}
+  .an-body{padding:14px 15px 15px;}
+  .chart-occ{width:100%;height:auto;display:block;}
+  .an-grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:6px;}
+  .mini{border:1px solid var(--line);border-radius:9px;padding:9px 10px 7px;background:rgba(10,13,24,0.5);}
+  .mini .mh{font-size:11px;color:var(--txt-2);font-weight:500;margin-bottom:5px;display:flex;justify-content:space-between;}
+  .mini .mh .mono{font-size:10px;color:var(--txt-3);}
+  .mini svg{width:100%;height:auto;display:block;}
+
+  .view-hint{position:absolute;bottom:14px;left:18px;font-size:11px;color:var(--txt-3);background:rgba(10,13,23,0.72);
+    padding:6px 11px;border-radius:7px;border:1px solid var(--line);z-index:10;backdrop-filter:blur(4px);
+    transition:opacity .5s ease, transform .5s ease;}
+  .view-hint.hidden{opacity:0;transform:translateY(4px);pointer-events:none;}
+  #hintDot{position:absolute;bottom:14px;left:18px;z-index:10;width:30px;height:30px;border-radius:8px;
+    background:rgba(10,13,23,0.72);border:1px solid var(--line);color:var(--txt-3);display:flex;align-items:center;
+    justify-content:center;cursor:default;backdrop-filter:blur(4px);opacity:0;pointer-events:none;
+    transition:opacity .5s ease, color .2s, border-color .2s;}
+  #hintDot.show{opacity:1;pointer-events:auto;}
+  #hintDot:hover{color:var(--txt-2);border-color:var(--line-2);}
+
+  /* side panel */
+  #side{width:330px;min-width:330px;background:linear-gradient(180deg, var(--bg-2), var(--bg));
+    border-left:1px solid var(--line);overflow-y:auto;padding:18px 16px 44px;z-index:20;}
+  #side::-webkit-scrollbar{width:8px;}
+  #side::-webkit-scrollbar-thumb{background:#1c2440;border-radius:6px;}
+
+  .card{background:var(--surface-2);border:1px solid var(--line);border-radius:11px;padding:15px 16px;
+    margin-bottom:13px;box-shadow:0 4px 14px rgba(0,0,0,0.2);}
+  .card h3{margin:0 0 14px;font-size:13px;font-weight:600;color:var(--txt);letter-spacing:-0.01em;}
+  .card h3 .hint{font-weight:400;font-size:11px;color:var(--txt-3);margin-left:8px;}
+
+  .row{display:flex;justify-content:space-between;align-items:baseline;padding:8px 0;border-bottom:1px solid rgba(34,42,68,0.6);}
+  .row:first-of-type{padding-top:2px;} .row:last-child{border-bottom:none;padding-bottom:2px;}
+  .row .rn{font-size:12.5px;color:var(--txt-2);}
+  .row .rn small{color:var(--txt-3);}
+  .row .rv{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--txt);font-weight:500;}
+  .row .rv.indigo{color:var(--indigo);} .row .rv.ochre{color:var(--ochre);}
+  .row .rv.ok{color:var(--ok);} .row .rv.warn{color:var(--ochre);} .row .rv.bad{color:var(--fault);}
+  .row.big{padding:12px 0;} .row.big .rn{font-size:13.5px;color:var(--txt);font-weight:500;}
+  .row.big .rv{font-size:20px;font-weight:600;}
+
+  .field{margin-bottom:16px;} .field:last-child{margin-bottom:0;}
+  .field-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px;}
+  .field-top .fn{font-size:12.5px;color:var(--txt-2);}
+  .field-top .fv{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--txt);font-weight:500;}
+  .field-top .fv small{color:var(--txt-3);font-size:11px;}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:2px;
+    background:linear-gradient(90deg, var(--indigo-2) var(--fill,50%), #1a2038 var(--fill,50%));outline:none;cursor:pointer;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;
+    background:#e3e7f2;border:1px solid #aab2cc;cursor:pointer;transition:transform .12s;box-shadow:0 1px 4px rgba(0,0,0,0.4);}
+  input[type=range]:active::-webkit-slider-thumb{transform:scale(1.18);}
+  input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:#e3e7f2;border:1px solid #aab2cc;cursor:pointer;}
+  .pf-scale{display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--txt-3);margin-top:6px;}
+
+  .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:7px 0;}
+  .toggle-row:first-child{padding-top:0;}
+  .toggle-row .tn{font-size:12.5px;color:var(--txt-2);}
+  .switch{width:40px;height:22px;border-radius:12px;background:#1a2038;border:1px solid var(--line-2);position:relative;cursor:pointer;flex-shrink:0;transition:background .18s,border-color .18s;}
+  .switch .knob{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#8790b0;transition:left .18s,background .18s;}
+  .switch.on{background:var(--indigo-soft);border-color:var(--indigo-2);}
+  .switch.on .knob{left:20px;background:var(--indigo);}
+
+  .note{font-size:11.5px;color:var(--txt-3);line-height:1.65;margin-top:12px;padding-top:12px;border-top:1px solid rgba(34,42,68,0.6);}
+  .note em{color:var(--txt-2);font-style:normal;} .k{color:var(--indigo);}
+
+  #loading{position:fixed;inset:0;z-index:200;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity .5s;}
+  .load-ring{width:38px;height:38px;border-radius:50%;border:2px solid #1a2038;border-top-color:var(--indigo);animation:spin .9s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  #loading .lt2{font-size:15px;font-weight:600;color:var(--txt);} #loading .lt{font-size:12px;color:var(--txt-3);}
+
+  #ptoggle{display:none;position:absolute;top:14px;right:14px;z-index:40;width:40px;height:40px;border-radius:9px;background:var(--surface-hi);border:1px solid var(--line-2);color:var(--txt);align-items:center;justify-content:center;font-size:18px;cursor:pointer;}
+  @media (max-width:1040px){
+    #side{position:fixed;right:0;top:58px;bottom:0;transform:translateX(100%);transition:transform .25s;box-shadow:-14px 0 40px rgba(0,0,0,0.55);}
+    #side.open{transform:translateX(0);} #ptoggle{display:flex;}
+    #analysis{width:340px;}
+  }
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="load-ring"></div>
+  <div class="lt2">Alternator Regulation — ZPF (Potier) Method</div>
+  <div class="lt">Loading characteristics…</div>
+</div>
+
+<div class="backdrop"></div>
+
+<div id="topbar">
+  <div class="brand">
+    <div class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="#7c8cf0" stroke-width="1.6"><path d="M4 20 L11 8 L17 14" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 20 H20" stroke-linecap="round"/></svg></div>
+    <div class="brand-text">
+      <div class="t1">Alternator voltage regulation</div>
+      <div class="t2">Zero-power-factor (Potier) method</div>
+    </div>
+  </div>
+  <div class="topbar-mid">
+    <div class="exp-tag">Exp 04 · Regulation</div>
+    <div class="reg-pill"><span class="lbl">Regulation</span><span class="val" id="regPill">+0.0 %</span></div>
+  </div>
+</div>
+
+<div id="app">
+  <div id="viewport">
+    <canvas id="three"></canvas>
+    <div class="stage-fade"></div>
+    <button id="ptoggle">☰</button>
+
+    <div id="analysis">
+      <div class="an-head">
+        <span class="ttl">Characteristics &amp; Potier construction</span>
+        <span class="sub" id="anSub">per phase</span>
+      </div>
+      <div class="an-body">
+        <svg class="chart-occ" id="occChart" viewBox="0 0 480 300"></svg>
+        <div class="an-grid2">
+          <div class="mini">
+            <div class="mh"><span>Phasor diagram</span><span class="mono" id="phLbl">0.80 lag</span></div>
+            <svg id="phasor" viewBox="0 0 220 190"></svg>
+          </div>
+          <div class="mini">
+            <div class="mh"><span>Regulation vs pf</span><span class="mono" id="regLbl">+0%</span></div>
+            <svg id="regChart" viewBox="0 0 220 150"></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="view-hint" id="viewHint">Drag to orbit · scroll to zoom · right-drag to pan</div>
+    <button id="hintDot" title="Camera controls"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="8" y="3.5" width="8" height="17" rx="4"/><path d="M12 7v3.5" stroke-linecap="round"/></svg></button>
+  </div>
+
+  <!-- ================= SIDE PANEL ================= -->
+  <div id="side">
+    <div class="card">
+      <h3>Machine under test</h3>
+      <div class="row"><span class="rn">Rated line voltage</span><span class="rv">415 V</span></div>
+      <div class="row"><span class="rn">Phase voltage <small>(star)</small></span><span class="rv">240 V</span></div>
+      <div class="row"><span class="rn">Rated armature current</span><span class="rv">15.0 A</span></div>
+      <div class="row"><span class="rn">Speed / frequency</span><span class="rv">1500 rpm · 50 Hz</span></div>
+    </div>
+
+    <div class="card">
+      <h3>Potier constants <span class="hint">from OCC + ZPF test</span></h3>
+      <div class="row"><span class="rn">Leakage reactance X<sub>L</sub></span><span class="rv indigo">1.20 Ω</span></div>
+      <div class="row"><span class="rn">Leakage drop I<sub>a</sub>X<sub>L</sub> <small>(rated)</small></span><span class="rv indigo">18.0 V</span></div>
+      <div class="row"><span class="rn">Armature-reaction field</span><span class="rv ochre">0.55 A</span></div>
+      <div class="note">Both are the sides of the <span class="k">Potier triangle</span> read off the graph — the vertical leg is the leakage-reactance drop, the horizontal leg the field current equivalent of armature reaction.</div>
+    </div>
+
+    <div class="card">
+      <h3>Load condition</h3>
+      <div class="field">
+        <div class="field-top"><span class="fn">Armature current</span><span class="fv" id="iVal">15.0 A · 100%</span></div>
+        <input type="range" id="iSlider" min="0" max="120" value="100" step="1">
+      </div>
+      <div class="field">
+        <div class="field-top"><span class="fn">Power factor</span><span class="fv" id="pfVal">0.80 lag</span></div>
+        <input type="range" id="pfSlider" min="-60" max="60" value="37" step="1">
+        <div class="pf-scale"><span>0.5 lead</span><span>unity</span><span>0.5 lag</span></div>
+      </div>
+      <div class="toggle-row"><span class="tn">Show operating construction</span><div class="switch on" id="tgConstruct"><div class="knob"></div></div></div>
+      <div class="toggle-row"><span class="tn">Show air-gap line</span><div class="switch on" id="tgAirgap"><div class="knob"></div></div></div>
+    </div>
+
+    <div class="card">
+      <h3>Computed result</h3>
+      <div class="row"><span class="rn">EMF behind X<sub>L</sub> — E<sub>1</sub></span><span class="rv" id="e1Out">0 V</span></div>
+      <div class="row"><span class="rn">Field current for E<sub>1</sub></span><span class="rv" id="if1Out">0 A</span></div>
+      <div class="row"><span class="rn">Resultant field current</span><span class="rv ochre" id="frOut">0 A</span></div>
+      <div class="row"><span class="rn">Open-circuit EMF E<sub>0</sub></span><span class="rv indigo" id="e0Out">0 V</span></div>
+      <div class="row big"><span class="rn">Voltage regulation</span><span class="rv" id="regOut">0.0 %</span></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>
+<script>
+window.addEventListener('load', () => {
+  try { boot(); }
+  catch(e){ document.getElementById('loading').innerHTML =
+    '<div style="color:#d56a86;font-family:Inter;font-size:13px;max-width:420px;text-align:center;line-height:1.6;">3D engine failed to start:<br>'+e.message+'</div>'; console.error(e); }
+});
+
+function boot(){
+  const DEG=Math.PI/180, $=id=>document.getElementById(id), NS='http://www.w3.org/2000/svg';
+  const clamp=(v,a,b)=>Math.min(Math.max(v,a),b);
+
+  /* ---------- machine data ---------- */
+  const OCC=[[0,0],[0.4,100],[0.8,190],[1.2,255],[1.6,300],[2.0,330],[2.4,352],[2.8,366],[3.2,375]];
+  const Vr=240, Iar=15, Xl=1.2, FarR=0.55;
+  const AIR=250; // air-gap line slope V/A (initial OCC slope)
+  function occ(f){ f=clamp(f,0,OCC[OCC.length-1][0]);
+    for(let i=0;i<OCC.length-1;i++){ const a=OCC[i],b=OCC[i+1]; if(f>=a[0]&&f<=b[0]){ const t=(f-a[0])/(b[0]-a[0]); return a[1]+t*(b[1]-a[1]); } }
+    return OCC[OCC.length-1][1]; }
+  function occInv(E){ E=clamp(E,0,OCC[OCC.length-1][1]);
+    for(let i=0;i<OCC.length-1;i++){ const a=OCC[i],b=OCC[i+1]; if(E>=a[1]&&E<=b[1]){ const t=(E-a[1])/(b[1]-a[1]); return a[0]+t*(b[0]-a[0]); } }
+    return OCC[OCC.length-1][0]; }
+  function zpf(f){ return Math.max(0, occ(f-FarR) - Iar*Xl); }
+
+  const S={ loadPct:100, phiDeg:37, showCon:true, showAir:true, shaft:0, regHist:0 };
+
+  function compute(){
+    const I=Iar*S.loadPct/100, phi=S.phiDeg*DEG, cs=Math.cos(phi), sn=Math.sin(phi);
+    const IXL=I*Xl;
+    const E1=Math.sqrt(Math.pow(Vr*cs,2)+Math.pow(Vr*sn+IXL,2));
+    const If1=occInv(E1);
+    const Far=FarR*(I/Iar);
+    const FR=Math.sqrt(If1*If1+Far*Far+2*If1*Far*sn);
+    const E0=occ(FR);
+    const reg=(E0-Vr)/Vr*100;
+    return {I,phi,cs,sn,IXL,E1,If1,Far,FR,E0,reg};
+  }
+  function regAt(phiDeg){ // regulation at given pf angle for current load
+    const I=Iar*S.loadPct/100, phi=phiDeg*DEG, sn=Math.sin(phi), cs=Math.cos(phi), IXL=I*Xl;
+    const E1=Math.sqrt(Math.pow(Vr*cs,2)+Math.pow(Vr*sn+IXL,2));
+    const If1=occInv(E1), Far=FarR*(I/Iar);
+    const FR=Math.sqrt(If1*If1+Far*Far+2*If1*Far*sn);
+    return (occ(FR)-Vr)/Vr*100;
+  }
+
+  /* ================= SVG chart helpers ================= */
+  function el(tag,attrs,parent){ const e=document.createElementNS(NS,tag); for(const k in attrs) e.setAttribute(k,attrs[k]); if(parent)parent.appendChild(e); return e; }
+  function clr(svg){ while(svg.firstChild) svg.removeChild(svg.firstChild); }
+
+  // ---- OCC / ZPF chart ----
+  const occSvg=$('occChart');
+  const OX0=44,OX1=466,OY0=270,OY1=16, FMAX=3.6, EMAX=400;
+  const oX=f=>OX0+(f/FMAX)*(OX1-OX0), oY=e=>OY0+(e/EMAX)*(OY1-OY0);
+  function drawOCC(){
+    clr(occSvg); const d=compute();
+    // grid
+    for(let f=0;f<=FMAX;f+=0.5){ const x=oX(f); el('line',{x1:x,y1:OY1,x2:x,y2:OY0,stroke:'#18203a','stroke-width':f%1===0?1:0.6},occSvg); }
+    for(let e=0;e<=EMAX;e+=50){ const y=oY(e); el('line',{x1:OX0,y1:y,x2:OX1,y2:y,stroke:'#18203a','stroke-width':e%100===0?1:0.6},occSvg); }
+    // axes
+    el('line',{x1:OX0,y1:OY0,x2:OX1,y2:OY0,stroke:'#2d3760','stroke-width':1.2},occSvg);
+    el('line',{x1:OX0,y1:OY1,x2:OX0,y2:OY0,stroke:'#2d3760','stroke-width':1.2},occSvg);
+    for(let f=0;f<=FMAX;f+=1){ el('text',{x:oX(f),y:OY0+14,fill:'#5a6288','font-size':9,'text-anchor':'middle','font-family':'IBM Plex Mono'},occSvg).textContent=f.toFixed(0); }
+    for(let e=0;e<=EMAX;e+=100){ el('text',{x:OX0-6,y:oY(e)+3,fill:'#5a6288','font-size':9,'text-anchor':'end','font-family':'IBM Plex Mono'},occSvg).textContent=e; }
+    el('text',{x:(OX0+OX1)/2,y:OY0+26,fill:'#8790b0','font-size':10,'text-anchor':'middle'},occSvg).textContent='Field current  If  (A)';
+    el('text',{x:14,y:(OY0+OY1)/2,fill:'#8790b0','font-size':10,'text-anchor':'middle',transform:`rotate(-90 14 ${(OY0+OY1)/2})`},occSvg).textContent='EMF / Voltage  (V, per phase)';
+    // air-gap line
+    if(S.showAir){ const fe=EMAX/AIR; el('line',{x1:oX(0),y1:oY(0),x2:oX(fe),y2:oY(EMAX),stroke:'#6d7ba0','stroke-width':1,'stroke-dasharray':'4 4',opacity:0.8},occSvg);
+      el('text',{x:oX(fe)+2,y:oY(EMAX)+10,fill:'#6d7ba0','font-size':8.5},occSvg).textContent='air-gap'; }
+    // OCC
+    let p=''; for(let f=0;f<=3.2;f+=0.05){ p+=(p?'L':'M')+oX(f)+' '+oY(occ(f)); }
+    el('path',{d:p,fill:'none',stroke:'#7c8cf0','stroke-width':2},occSvg);
+    // ZPF
+    let z='',started=false; for(let f=FarR;f<=FMAX;f+=0.05){ const v=zpf(f); if(v<=0.1&&!started)continue; z+=(z?'L':'M')+oX(f)+' '+oY(v); started=true; }
+    el('path',{d:z,fill:'none',stroke:'#d9a24e','stroke-width':2},occSvg);
+    // curve labels
+    el('text',{x:oX(2.55),y:oY(occ(2.55))-8,fill:'#7c8cf0','font-size':10,'font-weight':600},occSvg).textContent='OCC';
+    el('text',{x:oX(3.0),y:oY(zpf(3.0))+16,fill:'#d9a24e','font-size':10,'font-weight':600},occSvg).textContent='ZPF';
+    // Potier triangle (fixed, full-load)
+    const Rx=occInv(Vr+Iar*Xl), Ry=Vr+Iar*Xl, Sx=Rx, Sy=Vr, Px=Rx+FarR, Py=Vr;
+    el('polygon',{points:`${oX(Rx)},${oY(Ry)} ${oX(Sx)},${oY(Sy)} ${oX(Px)},${oY(Py)}`,fill:'rgba(124,140,240,0.12)',stroke:'#8b9af5','stroke-width':1.4},occSvg);
+    ['R','S','P'].forEach((t,i)=>{ const pt=[[Rx,Ry],[Sx,Sy],[Px,Py]][i]; el('circle',{cx:oX(pt[0]),cy:oY(pt[1]),r:2.4,fill:'#8b9af5'},occSvg);
+      el('text',{x:oX(pt[0])+(i===2?5:-9),y:oY(pt[1])+(i===0?-4:12),fill:'#aab2cc','font-size':9,'font-weight':600},occSvg).textContent=t; });
+    el('text',{x:oX(Sx)-4,y:(oY(Ry)+oY(Sy))/2,fill:'#8b9af5','font-size':8.5,'text-anchor':'end'},occSvg).textContent='IₐX_L';
+    el('text',{x:(oX(Sx)+oX(Px))/2,y:oY(Sy)+11,fill:'#d9a24e','font-size':8.5,'text-anchor':'middle'},occSvg).textContent='Fₐᵣ';
+    // operating construction
+    if(S.showCon){
+      el('line',{x1:OX0,y1:oY(Vr),x2:OX1,y2:oY(Vr),stroke:'#3a456e','stroke-width':1,'stroke-dasharray':'2 3'},occSvg);
+      // E1 point on OCC
+      el('line',{x1:oX(d.If1),y1:OY0,x2:oX(d.If1),y2:oY(d.E1),stroke:'#d07a9a','stroke-width':0.8,'stroke-dasharray':'2 3'},occSvg);
+      el('circle',{cx:oX(d.If1),cy:oY(d.E1),r:3,fill:'#d07a9a'},occSvg);
+      el('text',{x:oX(d.If1)+5,y:oY(d.E1)-4,fill:'#d07a9a','font-size':8.5},occSvg).textContent='E₁';
+      // FR / E0 point
+      el('line',{x1:oX(d.FR),y1:OY0,x2:oX(d.FR),y2:oY(d.E0),stroke:'#7c8cf0','stroke-width':0.8,'stroke-dasharray':'2 3'},occSvg);
+      el('line',{x1:OX0,y1:oY(d.E0),x2:oX(d.FR),y2:oY(d.E0),stroke:'#7c8cf0','stroke-width':0.8,'stroke-dasharray':'2 3'},occSvg);
+      el('circle',{cx:oX(d.FR),cy:oY(d.E0),r:3.4,fill:'#7c8cf0'},occSvg);
+      el('text',{x:oX(d.FR)+5,y:oY(d.E0)-4,fill:'#9fabf7','font-size':8.5,'font-weight':600},occSvg).textContent='E₀';
+      // regulation bracket on y-axis
+      el('line',{x1:OX0+6,y1:oY(Vr),x2:OX0+6,y2:oY(d.E0),stroke:d.reg>=0?'#d9a24e':'#5fb08f','stroke-width':2},occSvg);
+    }
+  }
+
+  // ---- phasor diagram ----
+  const phSvg=$('phasor');
+  function arrow(svg,x0,y0,x1,y1,color,w){ el('line',{x1:x0,y1:y0,x2:x1,y2:y1,stroke:color,'stroke-width':w||1.6,'stroke-linecap':'round'},svg);
+    const a=Math.atan2(y1-y0,x1-x0),L=5; el('polygon',{points:`${x1},${y1} ${x1-L*Math.cos(a-0.4)},${y1-L*Math.sin(a-0.4)} ${x1-L*Math.cos(a+0.4)},${y1-L*Math.sin(a+0.4)}`,fill:color},svg); }
+  function drawPhasor(){
+    clr(phSvg); const d=compute(); const ox=34,oy=150, k=0.46;
+    for(let i=0;i<=4;i++){ el('line',{x1:20,y1:oy-i*32,x2:210,y2:oy-i*32,stroke:'#151b30','stroke-width':0.6},phSvg); }
+    el('line',{x1:ox,y1:20,x2:ox,y2:oy,stroke:'#252d4d','stroke-width':0.8},phSvg);
+    el('line',{x1:ox,y1:oy,x2:212,y2:oy,stroke:'#252d4d','stroke-width':0.8},phSvg);
+    // V reference (+x)
+    const Vx=ox+Vr*k, Vy=oy;
+    arrow(phSvg,ox,oy,Vx,Vy,'#6d7ba0',2);
+    el('text',{x:Vx-4,y:oy+13,fill:'#8fa0c0','font-size':9},phSvg).textContent='V';
+    // current at -phi (lag below axis)
+    const Ilen=64, ix=ox+Ilen*Math.cos(-d.phi), iy=oy-Ilen*Math.sin(-d.phi)*-1; // screen y down
+    const iyy=oy+Ilen*Math.sin(d.phi);
+    arrow(phSvg,ox,oy,ox+Ilen*Math.cos(d.phi),oy+Ilen*Math.sin(d.phi),'#8790b0',1.4);
+    el('text',{x:ox+Ilen*Math.cos(d.phi)+3,y:oy+Ilen*Math.sin(d.phi)+ (d.phi>=0?12:-4),fill:'#8790b0','font-size':9},phSvg).textContent='Iₐ';
+    // IXL from tip of V, perpendicular to I (leads I by 90°)
+    const dirI=d.phi, dirIXL=dirI - Math.PI/2; // j*I leads by 90° (screen: subtract)
+    const ex=Vx + d.IXL*k*Math.cos(dirIXL), ey=Vy + d.IXL*k*Math.sin(dirIXL);
+    arrow(phSvg,Vx,Vy,ex,ey,'#d9a24e',1.6);
+    el('text',{x:(Vx+ex)/2+4,y:(Vy+ey)/2,fill:'#d9a24e','font-size':8.5},phSvg).textContent='IₐX_L';
+    // E1 resultant
+    arrow(phSvg,ox,oy,ex,ey,'#7c8cf0',2);
+    el('text',{x:ex+3,y:ey-3,fill:'#9fabf7','font-size':9,'font-weight':600},phSvg).textContent='E₁';
+  }
+
+  // ---- regulation vs pf ----
+  const regSvg=$('regChart');
+  const RX0=30,RX1=210,RY0=118,RY1=14, REGMAX=40;
+  const rX=a=>RX0+((a+60)/120)*(RX1-RX0), rY=r=>((RY0+RY1)/2) - (r/REGMAX)*((RY0-RY1)/2);
+  function drawReg(){
+    clr(regSvg);
+    for(let a=-60;a<=60;a+=30){ el('line',{x1:rX(a),y1:RY1,x2:rX(a),y2:RY0,stroke:'#151b30','stroke-width':0.6},regSvg); }
+    el('line',{x1:RX0,y1:rY(0),x2:RX1,y2:rY(0),stroke:'#2d3760','stroke-width':1},regSvg);
+    el('text',{x:RX0-2,y:rY(0)-2,fill:'#5a6288','font-size':8,'text-anchor':'end'},regSvg).textContent='0';
+    el('text',{x:RX0,y:RY0+11,fill:'#5a6288','font-size':8},regSvg).textContent='lead';
+    el('text',{x:RX1,y:RY0+11,fill:'#5a6288','font-size':8,'text-anchor':'end'},regSvg).textContent='lag';
+    let p=''; for(let a=-60;a<=60;a+=2){ const r=clamp(regAt(a),-REGMAX,REGMAX); p+=(p?'L':'M')+rX(a)+' '+rY(r); }
+    el('path',{d:p,fill:'none',stroke:'#7c8cf0','stroke-width':1.8},regSvg);
+    const cr=clamp(regAt(S.phiDeg),-REGMAX,REGMAX);
+    el('circle',{cx:rX(S.phiDeg),cy:rY(cr),r:3.4,fill:cr>=0?'#d9a24e':'#5fb08f'},regSvg);
+  }
+
+  /* ================= THREE.JS (machine under test) ================= */
+  const canvas=$('three'), viewport=$('viewport');
+  const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.setSize(viewport.clientWidth,viewport.clientHeight);
+  renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  renderer.outputEncoding=THREE.sRGBEncoding; renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.0;
+
+  const scene=new THREE.Scene(); scene.background=new THREE.Color(0x0a0d17); scene.fog=new THREE.FogExp2(0x0a0d17,0.02);
+  const camera=new THREE.PerspectiveCamera(40,viewport.clientWidth/viewport.clientHeight,0.1,400);
+
+  function buildEnv(){
+    const c=document.createElement('canvas'); c.width=1024;c.height=512; const x=c.getContext('2d');
+    const g=x.createLinearGradient(0,0,0,512); g.addColorStop(0,'#242a40');g.addColorStop(0.46,'#121624');g.addColorStop(0.54,'#0d1120');g.addColorStop(1,'#06080f');
+    x.fillStyle=g; x.fillRect(0,0,1024,512);
+    function soft(cx,cy,r,a){ const rg=x.createRadialGradient(cx,cy,0,cx,cy,r); rg.addColorStop(0,'rgba(200,210,240,'+a+')'); rg.addColorStop(1,'rgba(200,210,240,0)'); x.fillStyle=rg; x.fillRect(cx-r,cy-r,r*2,r*2); }
+    soft(250,150,150,0.5); soft(720,120,120,0.28); soft(520,360,260,0.1);
+    const tex=new THREE.CanvasTexture(c); tex.mapping=THREE.EquirectangularReflectionMapping;
+    try{ const pm=new THREE.PMREMGenerator(renderer); pm.compileEquirectangularShader(); const rt=pm.fromEquirectangular(tex); tex.dispose(); pm.dispose(); return rt.texture; }catch(e){ return tex; }
+  }
+  scene.environment=buildEnv();
+
+  const orbit={theta:0.9,phi:1.14,radius:24,minR:13,maxR:46,target:new THREE.Vector3(0.5,2.3,0)};
+  function applyOrbit(){ const o=orbit,p=o.target.clone(); p.x+=o.radius*Math.sin(o.phi)*Math.sin(o.theta); p.y+=o.radius*Math.cos(o.phi); p.z+=o.radius*Math.sin(o.phi)*Math.cos(o.theta); camera.position.copy(p); camera.lookAt(o.target); }
+  applyOrbit();
+  let drag=false,mb=0,lx=0,ly=0;
+  canvas.addEventListener('pointerdown',e=>{drag=true;mb=e.button;lx=e.clientX;ly=e.clientY;canvas.setPointerCapture(e.pointerId);});
+  canvas.addEventListener('pointerup',()=>drag=false); canvas.addEventListener('pointerleave',()=>drag=false);
+  canvas.addEventListener('pointermove',e=>{ if(!drag)return; const dx=e.clientX-lx,dy=e.clientY-ly; lx=e.clientX;ly=e.clientY;
+    if(mb===2){ orbit.target.x-=dx*0.018*Math.cos(orbit.theta); orbit.target.z+=dx*0.018*Math.sin(orbit.theta); orbit.target.y+=dy*0.018; }
+    else { orbit.theta-=dx*0.006; orbit.phi=clamp(orbit.phi-dy*0.006,0.28,Math.PI-0.34); } applyOrbit(); });
+  canvas.addEventListener('contextmenu',e=>e.preventDefault());
+  canvas.addEventListener('wheel',e=>{ e.preventDefault(); orbit.radius=clamp(orbit.radius+e.deltaY*0.016,orbit.minR,orbit.maxR); applyOrbit(); },{passive:false});
+  window.addEventListener('resize',()=>{ camera.aspect=viewport.clientWidth/viewport.clientHeight; camera.updateProjectionMatrix(); renderer.setSize(viewport.clientWidth,viewport.clientHeight); });
+
+  scene.add(new THREE.HemisphereLight(0x9aa6d0,0x0a0d15,0.35));
+  const key=new THREE.DirectionalLight(0xf3f0ff,2.0); key.position.set(9,17,11); key.castShadow=true;
+  key.shadow.mapSize.set(2048,2048); key.shadow.camera.left=-20;key.shadow.camera.right=20;key.shadow.camera.top=20;key.shadow.camera.bottom=-20;key.shadow.camera.far=60;key.shadow.bias=-0.0005;key.shadow.radius=4;
+  scene.add(key);
+  const fill=new THREE.DirectionalLight(0x8f9ed0,0.5); fill.position.set(-12,7,-9); scene.add(fill);
+
+  const floor=new THREE.Mesh(new THREE.CylinderGeometry(46,46,0.5,64), new THREE.MeshStandardMaterial({color:0x090c15,roughness:0.98,metalness:0.05,envMapIntensity:0.25}));
+  floor.position.y=-0.25; floor.receiveShadow=true; scene.add(floor);
+  const grid=new THREE.GridHelper(90,60,0x1a2340,0x111830); grid.position.y=0.015; grid.material.transparent=true; grid.material.opacity=0.42; scene.add(grid);
+  function contact(x,z,r){ const cv=document.createElement('canvas'); cv.width=cv.height=256; const g=cv.getContext('2d'); const rg=g.createRadialGradient(128,128,0,128,128,128); rg.addColorStop(0,'rgba(0,0,0,0.5)');rg.addColorStop(0.6,'rgba(0,0,0,0.26)');rg.addColorStop(1,'rgba(0,0,0,0)'); g.fillStyle=rg; g.fillRect(0,0,256,256);
+    const m=new THREE.Mesh(new THREE.PlaneGeometry(r,r*0.6), new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(cv),transparent:true,depthWrite:false})); m.rotation.x=-Math.PI/2; m.position.set(x,0.03,z); scene.add(m); }
+  contact(-4.6,0.4,9); contact(2.4,0.5,10); contact(7.4,0,6);
+
+  const M={
+    steel:new THREE.MeshStandardMaterial({color:0x9aa2b6,roughness:0.28,metalness:0.9,envMapIntensity:0.9}),
+    machined:new THREE.MeshStandardMaterial({color:0xc3c9d8,roughness:0.18,metalness:0.95,envMapIntensity:1.0}),
+    castAlt:new THREE.MeshStandardMaterial({color:0x353b5c,roughness:0.44,metalness:0.48,envMapIntensity:0.7}),
+    castMot:new THREE.MeshStandardMaterial({color:0x272c3e,roughness:0.5,metalness:0.5,envMapIntensity:0.6}),
+    dark:new THREE.MeshStandardMaterial({color:0x1f2436,roughness:0.5,metalness:0.55,envMapIntensity:0.6}),
+    bed:new THREE.MeshStandardMaterial({color:0x14182a,roughness:0.62,metalness:0.4,envMapIntensity:0.5}),
+    copper:new THREE.MeshStandardMaterial({color:0xb0763f,roughness:0.34,metalness:0.85,envMapIntensity:0.8}),
+    brass:new THREE.MeshStandardMaterial({color:0xc4a24e,roughness:0.34,metalness:0.85,envMapIntensity:0.8}),
+    insul:new THREE.MeshStandardMaterial({color:0x0c1120,roughness:0.55,metalness:0.1,envMapIntensity:0.4}),
+    stripe:new THREE.MeshStandardMaterial({color:0x10131f,roughness:0.7,metalness:0.2}),
+  };
+
+  const bed=new THREE.Mesh(new THREE.BoxGeometry(14,0.6,4.6),M.bed); bed.position.set(-1.4,0.3,0); bed.castShadow=true; bed.receiveShadow=true; scene.add(bed);
+  // DC drive motor
+  const mot=new THREE.Group();
+  const mb1=new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.5,3.2,44),M.castMot); mb1.rotation.z=Math.PI/2; mb1.castShadow=true; mot.add(mb1);
+  for(let i=0;i<11;i++){ const r=new THREE.Mesh(new THREE.TorusGeometry(1.53,0.045,8,44),M.castMot); r.rotation.y=Math.PI/2; r.position.x=-1.45+i*0.29; mot.add(r); }
+  [1.7,-1.7].forEach(px=>{ const b=new THREE.Mesh(new THREE.CylinderGeometry(1.55,1.55,0.32,44),M.dark); b.rotation.z=Math.PI/2; b.position.x=px; mot.add(b); });
+  const mfeet=new THREE.Mesh(new THREE.BoxGeometry(2.8,0.35,3.2),M.dark); mfeet.position.y=-1.45; mot.add(mfeet);
+  mot.position.set(-5.2,2.3,0); scene.add(mot);
+  // alternator under test
+  const alt=new THREE.Group();
+  const ab=new THREE.Mesh(new THREE.CylinderGeometry(1.8,1.8,3.5,52),M.castAlt); ab.rotation.z=Math.PI/2; ab.castShadow=true; alt.add(ab);
+  for(let i=0;i<9;i++){ const r=new THREE.Mesh(new THREE.TorusGeometry(1.83,0.05,10,52),M.castAlt); r.rotation.y=Math.PI/2; r.position.x=-1.45+i*0.365; r.castShadow=true; alt.add(r); }
+  [1.9,-1.9].forEach(px=>{ const b=new THREE.Mesh(new THREE.CylinderGeometry(1.9,1.9,0.3,52),M.dark); b.rotation.z=Math.PI/2; b.position.x=px; b.castShadow=true; alt.add(b); });
+  const tb=new THREE.Mesh(new THREE.BoxGeometry(1.5,0.68,1.6),M.dark); tb.position.set(0.2,1.9,0); alt.add(tb);
+  const phc=[0xb1564a,0xb59440,0x5f7f9c];
+  for(let i=0;i<3;i++){ const bu=new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.14,0.55,16),M.insul); bu.position.set(-0.2+i*0.4,2.42,0); alt.add(bu);
+    const cap=new THREE.Mesh(new THREE.SphereGeometry(0.12,14,14),new THREE.MeshStandardMaterial({color:phc[i],roughness:0.42,metalness:0.6,envMapIntensity:0.6})); cap.position.set(-0.2+i*0.4,2.72,0); alt.add(cap); }
+  const afeet=new THREE.Mesh(new THREE.BoxGeometry(3.3,0.35,3.9),M.dark); afeet.position.y=-1.72; alt.add(afeet);
+  // slip-ring end + brush gear (salient signal it's a synchronous machine)
+  const sr=new THREE.Group();
+  for(let i=0;i<2;i++){ const ring=new THREE.Mesh(new THREE.CylinderGeometry(0.62,0.62,0.18,28),M.brass); ring.rotation.z=Math.PI/2; ring.position.x=-2.05 - i*0.26; sr.add(ring); }
+  alt.add(sr);
+  alt.position.set(2.2,2.55,0); scene.add(alt);
+  // shaft
+  const shaftGrp=new THREE.Group();
+  const sh=new THREE.Mesh(new THREE.CylinderGeometry(0.19,0.19,4.0,20),M.machined); sh.rotation.z=Math.PI/2; shaftGrp.add(sh);
+  const cp=new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.5,0.8,32),M.steel); cp.rotation.z=Math.PI/2; shaftGrp.add(cp);
+  const rl=new THREE.Mesh(new THREE.BoxGeometry(0.82,0.02,0.12),M.stripe); rl.position.y=0.48; shaftGrp.add(rl);
+  shaftGrp.position.set(-1.5,2.55,0); scene.add(shaftGrp);
+
+  // inductive load bank (ZPF loading) — rack of reactor coils
+  const bank=new THREE.Group();
+  const bankFrame=new THREE.Mesh(new THREE.BoxGeometry(3.6,3.0,1.4),new THREE.MeshStandardMaterial({color:0x121728,roughness:0.6,metalness:0.4,envMapIntensity:0.4}));
+  bankFrame.position.y=1.5; bankFrame.castShadow=true; bank.add(bankFrame);
+  for(let c=0;c<3;c++){ for(let s=0;s<7;s++){ const coil=new THREE.Mesh(new THREE.TorusGeometry(0.34,0.06,8,26),M.copper); coil.position.set(-1.0+c*1.0, 0.6+s*0.36, 0.72); coil.rotation.x=Math.PI/2; bank.add(coil);} }
+  const bankcap=new THREE.Mesh(new THREE.BoxGeometry(3.7,0.16,1.5),M.dark); bankcap.position.y=3.05; bank.add(bankcap);
+  bank.position.set(7.4,0.2,-0.2); bank.rotation.y=-0.35; scene.add(bank);
+  // cable alternator -> load bank
+  const cc=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(2.4,5.3,0),new THREE.Vector3(5,4.2,0),new THREE.Vector3(7.2,3.2,-0.1)]),24,0.06,8,false),new THREE.MeshStandardMaterial({color:0x8a6a3a,roughness:0.5})); scene.add(cc);
+
+  /* ================= wiring ================= */
+  function setFill(el){ const p=(el.value-el.min)/(el.max-el.min)*100; el.style.setProperty('--fill',p+'%'); }
+  const iSlider=$('iSlider'), pfSlider=$('pfSlider');
+  function recompute(){
+    const d=compute();
+    // labels
+    $('iVal').textContent=(Iar*S.loadPct/100).toFixed(1)+' A · '+S.loadPct+'%';
+    const pf=Math.abs(Math.cos(S.phiDeg*DEG)), nat=S.phiDeg>0.5?'lag':S.phiDeg<-0.5?'lead':'unity';
+    $('pfVal').textContent=pf.toFixed(2)+' '+nat;
+    $('phLbl').textContent=pf.toFixed(2)+' '+nat;
+    // results
+    $('e1Out').textContent=d.E1.toFixed(0)+' V';
+    $('if1Out').textContent=d.If1.toFixed(2)+' A';
+    $('frOut').textContent=d.FR.toFixed(2)+' A';
+    $('e0Out').textContent=d.E0.toFixed(0)+' V';
+    const rg=d.reg; const cls=rg>15?'warn':rg<0?'ok':'';
+    const ro=$('regOut'); ro.textContent=(rg>=0?'+':'')+rg.toFixed(1)+' %'; ro.className='rv '+(rg<0?'ok':rg>15?'warn':'indigo');
+    const rp=$('regPill'); rp.textContent=(rg>=0?'+':'')+rg.toFixed(1)+' %'; rp.className='val '+(rg<0?'good':rg>15?'warn':'');
+    $('regLbl').textContent=(rg>=0?'+':'')+rg.toFixed(0)+'%';
+    drawOCC(); drawPhasor(); drawReg();
+  }
+  iSlider.addEventListener('input',()=>{ S.loadPct=+iSlider.value; setFill(iSlider); recompute(); });
+  pfSlider.addEventListener('input',()=>{ S.phiDeg=+pfSlider.value; setFill(pfSlider); recompute(); });
+  setFill(iSlider); setFill(pfSlider);
+  function wireTg(id,key){ const e=$(id); e.addEventListener('click',()=>{ S[key]=!S[key]; e.classList.toggle('on',S[key]); recompute(); }); }
+  wireTg('tgConstruct','showCon'); wireTg('tgAirgap','showAir');
+  $('ptoggle').addEventListener('click',()=>$('side').classList.toggle('open'));
+
+  // hint auto-hide
+  const viewHint=$('viewHint'), hintDot=$('hintDot'); let hintDone=false;
+  function stow(){ if(hintDone)return; hintDone=true; viewHint.classList.add('hidden'); hintDot.classList.add('show'); }
+  const ht=setTimeout(stow,6000);
+  ['pointerdown','wheel'].forEach(ev=>canvas.addEventListener(ev,()=>{clearTimeout(ht);stow();},{passive:true}));
+  hintDot.addEventListener('mouseenter',()=>viewHint.classList.remove('hidden'));
+  hintDot.addEventListener('mouseleave',()=>{ if(hintDone)viewHint.classList.add('hidden'); });
+
+  recompute();
+
+  /* ================= loop ================= */
+  const clock=new THREE.Clock();
+  function frame(){ requestAnimationFrame(frame); const dt=Math.min(clock.getDelta(),0.05);
+    S.shaft+=6.0*dt; shaftGrp.rotation.x=S.shaft;
+    renderer.render(scene,camera); }
+  frame();
+  const ld=$('loading'); ld.style.opacity='0'; setTimeout(()=>ld.remove(),520);
+}
+<\/script>
+</body>
+</html>
+</script>
+
+<script>
+(function(){
+  var EXP=['motor','alt','zpf'], built={};
+  var tabs=document.querySelectorAll('.sb-tab');
+  var loader=document.getElementById('stageLoader');
+  // stored templates escape their inner closing-script tags as <\/script>; restore before mounting
+  function unesc(t){ return t.replace(/<\\\/script>/g,'<\/script>'); }
+  function mount(exp){
+    var ifr=document.getElementById('ifr-'+exp);
+    if(!built[exp]){
+      loader.classList.add('show');
+      ifr.addEventListener('load', function onl(){ loader.classList.remove('show'); ifr.removeEventListener('load', onl); });
+      ifr.srcdoc = unesc(document.getElementById('tpl-'+exp).textContent);
+      built[exp]=true;
+      // safety: clear loader even if load doesn't fire
+      setTimeout(function(){ loader.classList.remove('show'); }, 4000);
+    }
+    EXP.forEach(function(e){ document.getElementById('ifr-'+e).classList.toggle('active', e===exp); });
+    tabs.forEach(function(t){ t.classList.toggle('active', t.getAttribute('data-exp')===exp); });
+  }
+  tabs.forEach(function(t){ t.addEventListener('click', function(){ mount(t.getAttribute('data-exp')); }); });
+  mount('motor');
+})();
 </script>
 </body>
 </html>
